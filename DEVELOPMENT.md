@@ -6,6 +6,7 @@
 ## 현재 상태
 - 다크 테마로 전면 리디자인 완료. 프로젝트 상세페이지에 데모(iframe) + 개발 후기(devlog) 구조 추가.
 - 카드 3개(픽셀아트, 릴레이뽑기, 속닥속닥)는 데모/글 모두 아직 placeholder 상태.
+- GitHub 원격 저장소 연결 완료: https://github.com/kinggodyoung5/kinggodsoft (branch: main)
 
 ## 완료 항목
 - [x] 폴더 구조 생성 (edu-hub/, assets/, projects/, web/)
@@ -39,9 +40,11 @@
 - 카테고리 순서를 바꾸고 싶으면 `assets/projects.js`의 `CATEGORY_ORDER` 배열만 수정.
 - `post.md`는 `fetch`로 불러오기 때문에 `file://`로 직접 열면 안 보일 수 있음 — 로컬 확인은 반드시 `python -m http.server` 등 로컬 서버를 통해서 할 것. GitHub Pages에 배포하면 정상 동작.
 - 두 PC에서 작업할 때는 시작 전 `git pull`, 끝날 때 `git push` 습관화.
+- 다른 PC에서 처음 이어받을 때: `git clone https://github.com/kinggodyoung5/kinggodsoft.git` 후 이 파일(DEVELOPMENT.md)의 "다음 할 일"부터 확인.
 
 ## 수정 이력
 | 날짜 | PC | 내용 |
 |------|----|----|
 | 2026-08-14 | - | 프로젝트 초기 생성 (폴더 구조, index.html, projects.js, style.css, DEVELOPMENT.md) |
 | 2026-08-14 | - | 다크 테마 리디자인 + 프로젝트 상세페이지(데모/devlog) 구조 도입 |
+| 2026-08-14 | - | GitHub 원격 저장소(kinggodsoft) 연결 및 초기 push 완료 |
