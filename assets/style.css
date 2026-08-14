@@ -315,6 +315,91 @@ a {
   margin: 0 0 18px;
 }
 
+.devlog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.devlog-header .detail-section-title {
+  margin: 0;
+}
+
+.edit-toggle {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--text-sub);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.edit-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.devlog-editor textarea {
+  width: 100%;
+  min-height: 260px;
+  background: var(--bg);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.devlog-editor textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.devlog-editor-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.devlog-editor-row input[type="password"] {
+  flex: 1;
+  min-width: 160px;
+  background: var(--bg);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+}
+
+.devlog-editor-row input[type="password"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.devlog-editor-row button {
+  background: transparent;
+  cursor: pointer;
+}
+
+.devlog-editor-msg {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  margin: 10px 0 0;
+  min-height: 1em;
+}
+
 .demo-frame-chrome {
   border: 1px solid var(--border);
   border-radius: 10px;

@@ -1,15 +1,459 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Demo</title>
-  <link rel="stylesheet" href="../../assets/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학급 릴레이뽑기</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #1a1a1a;
+    }
+
+    h2 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      color: #1a1a1a;
+    }
+
+    p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 14px;
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+    }
+
+    .count-hint {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 1.5rem;
+    }
+
+    .status-box {
+      background: #e8f4f8;
+      padding: 1.25rem;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .status-label {
+      font-size: 13px;
+      color: #0099cc;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-name {
+      font-size: 28px;
+      font-weight: 500;
+      color: #0099cc;
+    }
+
+    .draw-section {
+      text-align: center;
+    }
+
+    .draw-result {
+      font-size: 22px;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin: 1.5rem 0;
+      min-height: 32px;
+    }
+
+    .complete-message {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 500;
+      color: #0099cc;
+      margin-bottom: 1.5rem;
+    }
+
+    .results-list {
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 13px;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .result-name {
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .result-value {
+      font-weight: 500;
+      color: #0099cc;
+    }
+
+    .result-waiting {
+      color: #999;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 0.75rem 2rem;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #4a90e2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #357abd;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #d0d0d0;
+      color: #1a1a1a;
+      padding: 0.6rem 1.5rem;
+      font-size: 13px;
+    }
+
+    .btn-secondary:hover {
+      background: #f5f5f5;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .button-group-full {
+      display: flex;
+      gap: 8px;
+    }
+
+    .button-group-full button {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal-overlay {
+      margin-top: 1.5rem;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: #999;
+      font-size: 13px;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .rules {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    .rules ul {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+
+    .rules li {
+      margin-bottom: 0.5rem;
+    }
+
+    .control-bar {
+      display: flex;
+      gap: 8px;
+    }
+  </style>
 </head>
 <body>
-  <div class="placeholder-demo">
-    <strong>데모 준비중</strong>
-    <span>이 파일(demo.html)을 실제 학급 릴레이뽑기 결과물로 교체하세요.</span>
+  <div class="container">
+    <div class="card">
+      <h1>학급 릴레이뽑기</h1>
+
+      <div id="setupView">
+        <p>학생 명단을 입력하세요 (한 줄에 한 명, 또는 쉼표로 구분)</p>
+        <textarea id="nameInput" rows="6" placeholder="김민준
+김영광
+김유나"></textarea>
+        <div class="count-hint" id="countHint">이름 개수: 0명</div>
+        <div class="text-center">
+          <button class="btn-primary" id="startBtn">명단 등록하고 시작</button>
+        </div>
+      </div>
+
+      <div id="mainView" class="hidden">
+        <div class="status-box">
+          <div class="status-label">현재 뽑는 학생</div>
+          <div class="status-name" id="studentName">-</div>
+        </div>
+
+        <div id="drawView" class="hidden">
+          <div class="draw-section">
+            <p>이름을 뽑으세요!</p>
+            <button class="btn-primary" id="drawBtn">뽑기</button>
+            <div class="draw-result" id="result"></div>
+            <div class="button-group">
+              <button class="btn-secondary hidden" id="retryBtn">다시 뽑기</button>
+              <button class="btn-primary hidden" id="nextBtn">다음 학생</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="completeView" class="hidden">
+          <div class="complete-message">모든 학생이 뽑았습니다!</div>
+          <div class="results-list" id="resultsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rules">
+      <h2>규칙</h2>
+      <ul>
+        <li>자신의 이름은 자동 제외</li>
+        <li>나온 이름은 다시 안 나옴</li>
+        <li>자기 이름이 아닌 원치 않는 결과는 "다시 뽑기"로 재시도 가능</li>
+      </ul>
+    </div>
+
+    <div id="controlBar" class="control-bar hidden">
+      <button class="btn-secondary" id="resultsBtn">결과 보기</button>
+      <button class="btn-secondary" id="resetBtn">초기화</button>
+    </div>
+
+    <div id="resultsModal" class="modal-overlay hidden">
+      <div class="modal-header">
+        <div class="modal-title">교사용 결과 <span id="resultCount"></span></div>
+        <button class="modal-close" id="closeResultsBtn">닫기</button>
+      </div>
+      <div class="results-list" id="resultsDetail"></div>
+    </div>
   </div>
+
+  <script>
+    let STUDENTS = [];
+    let state = 'setup';
+    let current = 0;
+    let available = [];
+    let results = {};
+    let drawn = null;
+
+    function parseNames(text) {
+      return text.split(/[\n,]/).map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function updateCount() {
+      const names = parseNames(document.getElementById('nameInput').value);
+      document.getElementById('countHint').textContent = '이름 개수: ' + names.length + '명';
+    }
+
+    function startWithList() {
+      const names = parseNames(document.getElementById('nameInput').value);
+      if (names.length < 2) {
+        alert('최소 2명 이상의 이름을 입력하세요.');
+        return;
+      }
+      const unique = [...new Set(names)];
+      if (unique.length !== names.length) {
+        alert('중복된 이름이 있습니다. 이름을 구분되게 입력해주세요 (예: 김민준1, 김민준2).');
+        return;
+      }
+      STUDENTS = unique;
+      state = 'draw';
+      current = 0;
+      available = [...STUDENTS];
+      results = {};
+      drawn = null;
+      document.getElementById('setupView').classList.add('hidden');
+      document.getElementById('mainView').classList.remove('hidden');
+      document.getElementById('controlBar').classList.remove('hidden');
+      render();
+    }
+
+    function draw() {
+      const self = STUDENTS[current];
+      const choices = available.filter(n => n !== self);
+      if (choices.length === 0) {
+        alert('뽑을 수 있는 이름이 없습니다.');
+        return;
+      }
+      drawn = choices[Math.floor(Math.random() * choices.length)];
+      render();
+    }
+
+    function retry() {
+      drawn = null;
+      render();
+    }
+
+    function next() {
+      results[STUDENTS[current]] = drawn;
+      available = available.filter(n => n !== drawn);
+      current++;
+      drawn = null;
+      if (current >= STUDENTS.length) {
+        state = 'complete';
+      }
+      render();
+    }
+
+    function reset() {
+      if (!confirm('초기화하시겠습니까? 명단 입력 화면으로 돌아갑니다.')) return;
+      state = 'setup';
+      current = 0;
+      STUDENTS = [];
+      available = [];
+      results = {};
+      drawn = null;
+      document.getElementById('resultsModal').classList.add('hidden');
+      document.getElementById('mainView').classList.add('hidden');
+      document.getElementById('controlBar').classList.add('hidden');
+      document.getElementById('setupView').classList.remove('hidden');
+      render();
+    }
+
+    function renderRow(s, r) {
+      return '<div class="result-row">' +
+        '<span class="result-name">' + s + '</span>' +
+        '<span class="result-value' + (r ? '' : ' result-waiting') + '">' + (r ? '→ ' + r : '대기 중') + '</span>' +
+        '</div>';
+    }
+
+    function showResults() {
+      let html = '';
+      STUDENTS.forEach(s => { html += renderRow(s, results[s]); });
+      document.getElementById('resultsDetail').innerHTML = html;
+      document.getElementById('resultCount').textContent = '(' + Object.keys(results).length + '/' + STUDENTS.length + ')';
+      document.getElementById('resultsModal').classList.remove('hidden');
+    }
+
+    function render() {
+      if (state === 'draw') {
+        document.getElementById('drawView').classList.remove('hidden');
+        document.getElementById('completeView').classList.add('hidden');
+        document.getElementById('studentName').textContent = STUDENTS[current];
+        document.getElementById('result').textContent = drawn ? drawn : '';
+        document.getElementById('retryBtn').classList.toggle('hidden', !drawn);
+        document.getElementById('nextBtn').classList.toggle('hidden', !drawn);
+      } else if (state === 'complete') {
+        document.getElementById('drawView').classList.add('hidden');
+        document.getElementById('completeView').classList.remove('hidden');
+        document.getElementById('studentName').textContent = '완료';
+        let html = '';
+        STUDENTS.forEach(s => { html += renderRow(s, results[s]); });
+        document.getElementById('resultsList').innerHTML = html;
+      }
+    }
+
+    document.getElementById('nameInput').oninput = updateCount;
+    document.getElementById('startBtn').onclick = startWithList;
+    document.getElementById('drawBtn').onclick = draw;
+    document.getElementById('retryBtn').onclick = retry;
+    document.getElementById('nextBtn').onclick = next;
+    document.getElementById('resetBtn').onclick = reset;
+    document.getElementById('resultsBtn').onclick = showResults;
+    document.getElementById('closeResultsBtn').onclick = function() {
+      document.getElementById('resultsModal').classList.add('hidden');
+    };
+  </script>
 </body>
 </html>

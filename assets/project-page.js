@@ -125,7 +125,10 @@ function renderMarkdown(md) {
         </div>
       </section>
       <section>
-        <p class="detail-section-title">Devlog</p>
+        <div class="devlog-header">
+          <p class="detail-section-title">Devlog</p>
+          <button class="edit-toggle" id="devlog-edit-toggle" type="button">편집</button>
+        </div>
         <div class="devlog" id="devlog-content">
           <p class="devlog-empty">불러오는 중...</p>
         </div>
@@ -133,21 +136,102 @@ function renderMarkdown(md) {
     </div>
   `;
 
+  let rawMarkdown = "";
+
+  function showDevlog(md) {
+    rawMarkdown = md;
+    const target = document.getElementById("devlog-content");
+    if (md.trim() === "") {
+      target.innerHTML = `<p class="devlog-empty">아직 작성된 글이 없습니다. 위의 "편집" 버튼을 눌러 개발 후기를 작성해보세요.</p>`;
+    } else {
+      target.innerHTML = renderMarkdown(md);
+    }
+  }
+
+  function openEditor() {
+    const container = document.getElementById("devlog-content");
+    container.innerHTML = "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "devlog-editor";
+
+    const textarea = document.createElement("textarea");
+    textarea.rows = 14;
+    textarea.value = rawMarkdown;
+    wrap.appendChild(textarea);
+
+    const row = document.createElement("div");
+    row.className = "devlog-editor-row";
+
+    const pw = document.createElement("input");
+    pw.type = "password";
+    pw.placeholder = "비밀번호";
+    pw.autocomplete = "off";
+    row.appendChild(pw);
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn";
+    saveBtn.type = "button";
+    saveBtn.textContent = "저장";
+    row.appendChild(saveBtn);
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "btn";
+    cancelBtn.type = "button";
+    cancelBtn.textContent = "취소";
+    row.appendChild(cancelBtn);
+
+    wrap.appendChild(row);
+
+    const msg = document.createElement("p");
+    msg.className = "devlog-editor-msg";
+    wrap.appendChild(msg);
+
+    container.appendChild(wrap);
+
+    cancelBtn.onclick = () => showDevlog(rawMarkdown);
+
+    saveBtn.onclick = async () => {
+      const content = textarea.value;
+      const password = pw.value;
+      if (!password) {
+        msg.textContent = "비밀번호를 입력하세요.";
+        return;
+      }
+      saveBtn.disabled = true;
+      msg.textContent = "저장 중...";
+      try {
+        const res = await fetch("/api/save-post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: PROJECT_ID, content, password }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          msg.textContent = data.error || "저장에 실패했습니다.";
+          saveBtn.disabled = false;
+          return;
+        }
+        msg.textContent = "저장되었습니다. 잠시 후 재배포되어 반영됩니다.";
+        showDevlog(content);
+      } catch (err) {
+        msg.textContent = "저장 중 오류가 발생했습니다. (이 기능은 Vercel 배포 환경에서만 동작합니다)";
+        saveBtn.disabled = false;
+      }
+    };
+  }
+
+  document.getElementById("devlog-edit-toggle").onclick = openEditor;
+
   fetch("./post.md")
     .then((res) => {
       if (!res.ok) throw new Error("not found");
       return res.text();
     })
-    .then((text) => {
-      const target = document.getElementById("devlog-content");
-      if (text.trim() === "") {
-        target.innerHTML = `<p class="devlog-empty">아직 작성된 글이 없습니다. 이 폴더의 <code>post.md</code> 파일을 열어 개발 후기를 작성해보세요.</p>`;
-      } else {
-        target.innerHTML = renderMarkdown(text);
-      }
-    })
+    .then((text) => showDevlog(text))
     .catch(() => {
+      rawMarkdown = "";
       document.getElementById("devlog-content").innerHTML =
-        `<p class="devlog-empty">post.md를 불러올 수 없습니다.<br />로컬에서 볼 때는 서버를 통해 열어야 합니다 (예: <code>python -m http.server</code>).<br />GitHub Pages에 올리면 정상적으로 표시됩니다.</p>`;
+        `<p class="devlog-empty">post.md를 불러올 수 없습니다.<br />로컬에서 볼 때는 서버를 통해 열어야 합니다 (예: <code>python -m http.server</code>).<br />Vercel에 배포하면 정상적으로 표시됩니다.<br />위의 "편집" 버튼으로 새로 작성할 수도 있습니다.</p>`;
     });
 })();
