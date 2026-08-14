@@ -7,7 +7,7 @@
 - 다크 테마로 전면 리디자인 완료. 프로젝트 상세페이지에 데모(iframe) + 개발 후기(devlog) 구조 추가.
 - 카드 3개(픽셀아트, 릴레이뽑기, 속닥속닥)는 데모/글 모두 아직 placeholder 상태.
 - GitHub 원격 저장소 연결 완료: https://github.com/kinggodyoung5/kinggodsoft (branch: main)
-- 배포는 Vercel 사용 예정 (아래 "배포 (Vercel)" 섹션 참고, 계정 연동은 사람이 직접 해야 함)
+- Vercel 배포 완료 및 실사용 확인: https://kinggodsoft-kinggodyoung.vercel.app (Deployment Protection 해제해서 로그인 없이 접속 가능)
 
 ## 완료 항목
 - [x] 폴더 구조 생성 (edu-hub/, assets/, projects/, web/)
@@ -25,7 +25,6 @@
 - (여기에 지금 작업 중인 항목을 적으세요)
 
 ## 다음 할 일
-- [ ] Vercel 계정 생성 + GitHub(kinggodsoft) 연동 및 배포 (사람이 직접: vercel.com → Add New Project → import)
 - [ ] 픽셀아트 스튜디오 실제 구현 → `projects/pixelart/demo.html` 교체 + `post.md` 작성
 - [ ] 학급 릴레이뽑기 실제 구현 → `projects/relay/demo.html` 교체 + `post.md` 작성
 - [ ] 속닥속닥 실제 구현 → `projects/wellness/demo.html` 교체 + `post.md` 작성
@@ -45,10 +44,10 @@
 - 다른 PC에서 처음 이어받을 때: `git clone https://github.com/kinggodyoung5/kinggodsoft.git` 후 이 파일(DEVELOPMENT.md)의 "다음 할 일"부터 확인.
 
 ## 배포 (Vercel)
-- 정적 사이트라 빌드 설정 없이 그대로 배포 가능 (Framework Preset: Other / 빌드 커맨드 없음 / 아웃풋 디렉토리 비워둠).
-- 최초 1회는 사람이 직접: [vercel.com](https://vercel.com) 로그인 → New Project → `kinggodsoft` 저장소 Import → Deploy.
-- 이후에는 `main` 브랜치에 `git push`할 때마다 Vercel이 자동으로 재배포함.
-- 배포 URL은 연결 후 이 섹션에 적어둘 것 (예: `https://kinggodsoft.vercel.app`).
+- 배포 URL: **https://kinggodsoft-kinggodyoung.vercel.app**
+- 정적 사이트라 빌드 설정 없음 (Framework Preset: Other).
+- `main` 브랜치에 `git push`할 때마다 Vercel이 자동으로 재배포함.
+- Deployment Protection을 껐기 때문에 로그인 없이 누구나 접속 가능 — 완전히 비공개로 두고 싶다면 Vercel 대시보드(Settings → Deployment Protection)에서 다시 켤 것.
 
 ## 수정 이력
 | 날짜 | PC | 내용 |
@@ -56,4 +55,4 @@
 | 2026-08-14 | - | 프로젝트 초기 생성 (폴더 구조, index.html, projects.js, style.css, DEVELOPMENT.md) |
 | 2026-08-14 | - | 다크 테마 리디자인 + 프로젝트 상세페이지(데모/devlog) 구조 도입 |
 | 2026-08-14 | - | GitHub 원격 저장소(kinggodsoft) 연결 및 초기 push 완료 |
-| 2026-08-14 | - | Vercel 배포 예정으로 결정, DEVELOPMENT.md에 배포 절차 기록 |
+| 2026-08-14 | - | Vercel 배포 완료, Deployment Protection 해제, 실사용(Demo/Devlog 렌더링) 확인 |
