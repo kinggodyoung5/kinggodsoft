@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workbench — Personal Dev Archive</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <nav class="site-nav">
+    <span class="brand">WORKBENCH</span>
+  </nav>
+
+  <header class="hub-header">
+    <p class="eyebrow">Personal Dev Archive</p>
+    <h1>Workbench</h1>
+    <p>취미로 만든 웹, 업무용 프로그램, 교육용 도구를 기록하고 시연하는 아카이브.</p>
+  </header>
+
+  <main class="hub-container" id="hub-container">
+    <!-- 카드는 assets/projects.js 의 데이터를 기반으로 자동 생성됩니다 -->
+  </main>
+
+  <script src="assets/projects.js"></script>
+  <script>
+    const DIFFICULTY_CLASS = {
+      "초급": "beginner",
+      "중급": "intermediate",
+      "고급": "advanced",
+    };
+
+    function buildCard(project, index) {
+      const isEmpty = project.status === "empty";
+      const el = document.createElement(isEmpty ? "div" : "a");
+      el.className = "card" + (isEmpty ? " empty" : "");
+      if (!isEmpty) {
+        el.href = project.path;
+      }
+
+      const badgeClass = isEmpty ? "planned" : DIFFICULTY_CLASS[project.difficulty] || "beginner";
+      const badgeLabel = isEmpty ? "PLANNED" : project.difficulty;
+      const num = String(index + 1).padStart(2, "0");
+
+      el.innerHTML = `
+        <div class="card-top">
+          <span class="card-index">${num}</span>
+          <span class="tag ${badgeClass}">${badgeLabel}</span>
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">${project.title}</h3>
+          <p class="card-desc">${project.description}</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-path">/${project.path}</span>
+          ${isEmpty ? '<span class="status-planned">soon</span>' : '<span class="card-arrow">→</span>'}
+        </div>
+      `;
+      return el;
+    }
+
+    function render() {
+      const container = document.getElementById("hub-container");
+
+      // 카테고리별로 그룹화
+      const grouped = {};
+      PROJECTS.forEach((p) => {
+        if (!grouped[p.category]) grouped[p.category] = [];
+        grouped[p.category].push(p);
+      });
+
+      // CATEGORY_ORDER 기준으로 정렬, 목록에 없는 카테고리는 뒤에 추가
+      const orderedCategories = [
+        ...CATEGORY_ORDER.filter((c) => grouped[c]),
+        ...Object.keys(grouped).filter((c) => !CATEGORY_ORDER.includes(c)),
+      ];
+
+      orderedCategories.forEach((category, i) => {
+        const section = document.createElement("section");
+        section.className = "category-section";
+
+        const eyebrow = document.createElement("div");
+        eyebrow.className = "section-eyebrow";
+        eyebrow.innerHTML = `<span class="n">${String(i + 1).padStart(2, "0")}</span> / ${category}`;
+        section.appendChild(eyebrow);
+
+        const grid = document.createElement("div");
+        grid.className = "card-grid";
+        grouped[category].forEach((project, idx) => grid.appendChild(buildCard(project, idx)));
+        section.appendChild(grid);
+
+        container.appendChild(section);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
