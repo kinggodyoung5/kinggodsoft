@@ -223,7 +223,9 @@ function renderMarkdown(md) {
 
   document.getElementById("devlog-edit-toggle").onclick = openEditor;
 
-  fetch("./post.md")
+  // 캐시 버스팅: 매번 다른 쿼리스트링을 붙여서 브라우저/Vercel CDN 캐시에
+  // 안 걸리고 항상 GitHub의 최신 커밋 내용을 받아오게 한다.
+  fetch(`./post.md?t=${Date.now()}`)
     .then((res) => {
       if (!res.ok) throw new Error("not found");
       return res.text();
