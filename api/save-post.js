@@ -8,6 +8,12 @@ const OWNER = "kinggodyoung5";
 const REPO = "kinggodsoft";
 const BRANCH = "main";
 
+// Vercel 환경변수 이름은 대소문자를 구분한다. GITHUB_TOKEN/EDIT_PASSWORD가
+// 아니라 소문자(github_token/edit_password)로 등록된 경우도 그대로 인식하도록
+// 두 표기를 모두 받아들인다.
+const EDIT_PASSWORD = process.env.EDIT_PASSWORD || process.env.edit_password;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.github_token;
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -16,11 +22,11 @@ module.exports = async function handler(req, res) {
 
   const { projectId, content, password } = req.body || {};
 
-  if (!process.env.EDIT_PASSWORD) {
+  if (!EDIT_PASSWORD) {
     res.status(500).json({ ok: false, error: "서버에 EDIT_PASSWORD가 설정되어 있지 않습니다." });
     return;
   }
-  if (!password || password !== process.env.EDIT_PASSWORD) {
+  if (!password || password !== EDIT_PASSWORD) {
     res.status(401).json({ ok: false, error: "비밀번호가 올바르지 않습니다." });
     return;
   }
@@ -33,7 +39,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const token = process.env.GITHUB_TOKEN;
+  const token = GITHUB_TOKEN;
   if (!token) {
     res.status(500).json({ ok: false, error: "서버에 GITHUB_TOKEN이 설정되어 있지 않습니다." });
     return;
