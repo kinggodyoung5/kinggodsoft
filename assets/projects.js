@@ -24,8 +24,8 @@ const PROJECTS = [
   {
     id: "pixelart",
     title: "픽셀아트 스튜디오",
-    description: "색상 선택하며 픽셀 아트 만드는 초급 실습",
-    difficulty: "초급",
+    description: "이미지를 번호 색칠 학습지로 자동 변환하는 도구",
+    difficulty: "고급",
     category: "교육용 도구",
     path: "projects/pixelart/",
     status: "ready",
@@ -49,13 +49,13 @@ const PROJECTS = [
     status: "ready",
   },
   {
-    id: "web-main",
-    title: "메인 웹 프로젝트",
-    description: "나중에 채울 예정",
+    id: "rockatlas",
+    title: "ROCK ATLAS",
+    description: "장르·분위기 기반 록 밴드 탐색 아카이브",
     difficulty: "고급",
     category: "업무용 프로그램",
-    path: "web/",
-    status: "empty",
+    path: "projects/rockatlas/",
+    status: "ready",
   },
 ];
 
