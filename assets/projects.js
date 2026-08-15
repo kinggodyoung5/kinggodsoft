@@ -49,11 +49,20 @@ const PROJECTS = [
     status: "ready",
   },
   {
+    id: "seatswap",
+    title: "자리바꾸기",
+    description: "교사용/학생용 교실 자리 랜덤 배치 프로그램",
+    difficulty: "고급",
+    category: "교육용 도구",
+    path: "projects/seatswap/",
+    status: "ready",
+  },
+  {
     id: "rockatlas",
     title: "ROCK ATLAS",
     description: "장르·분위기 기반 록 밴드 탐색 아카이브",
     difficulty: "고급",
-    category: "업무용 프로그램",
+    category: "취미용 개발",
     path: "projects/rockatlas/",
     status: "ready",
   },
@@ -61,4 +70,4 @@ const PROJECTS = [
 
 // 카테고리 표시 순서를 바꾸고 싶으면 이 배열을 수정하세요.
 // 여기에 없는 카테고리는 등장 순서대로 뒤에 자동으로 추가됩니다.
-const CATEGORY_ORDER = ["교육용 도구", "업무용 프로그램", "취미 프로젝트"];
+const CATEGORY_ORDER = ["교육용 도구", "취미용 개발"];
