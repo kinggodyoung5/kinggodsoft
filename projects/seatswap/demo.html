@@ -1737,7 +1737,7 @@ body {
     <script>
 (() => {
   /*
-  코도의 정성 - app.js (Vanilla JS)
+  자리바꾸기 - app.js (Vanilla JS)
 
   설계 원칙(요구사항 반영):
   - 서버 비용 0원: 정적 웹앱 + LocalStorage + JSON Import/Export
@@ -1764,7 +1764,7 @@ body {
   // 상수/기본값
   // ---------------------------
 
-  const APP_STORAGE_KEY = "yoonseong-seat-app:v1";
+  const APP_STORAGE_KEY = "kinggodsoft-seatswap:v1";
   const MAX_BLOCKS = 10;
   const MAX_ROWS = 10;
   const DEFAULT_LAYOUT = { blocks: 3, rowsByBlock: [5, 5, 5], mode: "pair" }; // 분단별 줄 수(3분단), mode: 'pair'(1줄 2명) | 'single'(1줄 1명)
@@ -3314,7 +3314,7 @@ body {
     const dd = String(now.getDate()).padStart(2, "0");
     const hh = String(now.getHours()).padStart(2, "0");
     const mi = String(now.getMinutes()).padStart(2, "0");
-    const filename = `코도의정성_${yy}년${mm}월${dd}일_${hh}시${mi}분.json`;
+    const filename = `자리바꾸기_${yy}년${mm}월${dd}일_${hh}시${mi}분.json`;
     downloadJson(filename, payload);
     toast("JSON 파일로 저장했습니다.");
   }

@@ -11,10 +11,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px 24px;
+      padding: 32px 20px;
     }
     .overview-card {
-      max-width: 480px;
+      width: 100%;
+      max-width: 640px;
       text-align: center;
     }
     .overview-eyebrow {
@@ -23,34 +24,62 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--accent);
-      margin: 0 0 14px;
+      margin: 0 0 12px;
     }
     .overview-card h1 {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: 800;
       letter-spacing: -0.02em;
-      margin: 0 0 14px;
+      margin: 0 0 18px;
     }
-    .overview-card p {
-      color: var(--text-sub);
-      font-size: 0.92rem;
-      line-height: 1.65;
-      margin: 0 0 26px;
+
+    /* 실제 사이트를 그대로 축소해서 보여주는 라이브 미리보기.
+       스크린샷 대신 iframe을 스케일해서 넣기 때문에 원본이 바뀌면 여기도 자동으로 최신 상태를 보여준다. */
+    .live-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--bg-elevated);
+      margin-bottom: 18px;
     }
-    .overview-tags {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 26px;
+    .live-preview iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1400px;
+      border: 0;
+      transform-origin: top left;
+      pointer-events: none;
     }
-    .overview-tags span {
+    .live-preview-link {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+    .live-preview-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2;
       font-family: var(--mono);
-      font-size: 0.7rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
       color: var(--text-sub);
+      background: rgba(9, 9, 11, 0.7);
       border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 4px 11px;
+      padding: 3px 10px;
+      pointer-events: none;
+    }
+
+    .overview-card p.desc {
+      color: var(--text-sub);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin: 0 0 22px;
     }
     .overview-card .btn {
       font-size: 0.88rem;
@@ -67,20 +96,54 @@
     <div class="overview-card">
       <p class="overview-eyebrow">Live Site</p>
       <h1>ROCK ATLAS</h1>
-      <p>
-        장르·분위기 기준으로 록 밴드를 탐색하는 아카이브 사이트.
-        "지금 밴드에서 더 무겁게 / 더 몽환적으로" 같은 방향을 골라
-        다음 밴드로 넘어가는 히치하이킹 추천이 핵심 기능입니다.
-      </p>
-      <div class="overview-tags">
-        <span>React + TypeScript</span>
-        <span>GitHub Pages</span>
-        <span>200+ 밴드</span>
+
+      <div class="live-preview" id="livePreview">
+        <span class="live-preview-badge">실시간 미리보기</span>
+        <iframe
+          id="previewFrame"
+          src="https://kinggodyoung5.github.io/rockatlas/"
+          title="ROCK ATLAS 미리보기"
+          loading="lazy"
+        ></iframe>
+        <a
+          class="live-preview-link"
+          href="https://kinggodyoung5.github.io/rockatlas/"
+          target="_blank"
+          rel="noopener"
+          aria-label="ROCK ATLAS 실제 사이트 열기"
+        ></a>
       </div>
+
+      <p class="desc">
+        장르·분위기 기준으로 록 밴드를 탐색하는 아카이브 사이트.
+        "지금 밴드에서 더 무겁게 / 더 몽환적으로" 같은 방향을 골라 다음 밴드로 넘어가는 히치하이킹 추천이 핵심 기능입니다.
+      </p>
+
       <a class="btn" href="https://kinggodyoung5.github.io/rockatlas/" target="_blank" rel="noopener">
         실제 사이트 바로가기 ↗
       </a>
     </div>
   </div>
+
+  <script>
+    // iframe을 실제 크기(1400px 폭 기준)로 그린 뒤 박스 폭에 맞게 스케일만 축소한다.
+    const DESIGN_WIDTH = 1400;
+    const wrap = document.getElementById("livePreview");
+    const frame = document.getElementById("previewFrame");
+
+    function fit() {
+      const boxWidth = wrap.clientWidth;
+      const boxHeight = wrap.clientHeight;
+      const scale = boxWidth / DESIGN_WIDTH;
+      frame.style.height = boxHeight / scale + "px";
+      frame.style.transform = `scale(${scale})`;
+    }
+
+    // window resize 이벤트만 쓰면 최초 로드 시 레이아웃이 아직 안 잡혀서
+    // boxHeight가 0으로 읽히는 경우가 있었다(스케일 0 → 미리보기가 안 보임).
+    // 즉시 한 번 계산하고, 이후 크기 변화는 ResizeObserver로 계속 따라간다.
+    fit();
+    new ResizeObserver(fit).observe(wrap);
+  </script>
 </body>
 </html>
