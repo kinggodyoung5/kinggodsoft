@@ -96,14 +96,10 @@ function renderMarkdown(md) {
 
   document.title = `${project.title} — Workbench`;
 
-  const difficultyClass = { "초급": "beginner", "중급": "intermediate", "고급": "advanced" }[project.difficulty] || "beginner";
-
   root.innerHTML = `
     <header class="detail-header">
       <div class="detail-meta">
         <span>${project.category}</span>
-        <span class="sep">/</span>
-        <span class="tag ${difficultyClass}">${project.difficulty}</span>
       </div>
       <h1>${project.title}</h1>
       <p class="detail-desc">${project.description}</p>

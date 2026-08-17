@@ -11,9 +11,6 @@
   --accent-dim: rgba(255, 90, 52, 0.14);
   --mono: "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, monospace;
   --sans: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, sans-serif;
-  --level-beginner: #4ade80;
-  --level-intermediate: #facc15;
-  --level-advanced: #fb7185;
 }
 
 * {
@@ -192,18 +189,6 @@ a {
   border: 1px solid currentColor;
 }
 
-.tag.beginner {
-  color: var(--level-beginner);
-}
-
-.tag.intermediate {
-  color: var(--level-intermediate);
-}
-
-.tag.advanced {
-  color: var(--level-advanced);
-}
-
 .tag.planned {
   color: var(--text-faint);
 }
@@ -276,10 +261,6 @@ a {
   color: var(--text-sub);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.detail-meta .sep {
-  color: var(--text-faint);
 }
 
 .detail-header h1 {
