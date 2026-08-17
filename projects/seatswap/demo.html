@@ -362,6 +362,9 @@ body {
 .field--inline .field__label {
   white-space: nowrap;
 }
+.field--inline.isDisabled {
+  opacity: 0.5;
+}
 
 .input,
 .select {
@@ -382,6 +385,12 @@ body {
 .input::placeholder {
   color: var(--faint);
   font-weight: 500;
+}
+.input:disabled,
+.select:disabled {
+  background: var(--sunken);
+  color: var(--faint);
+  cursor: not-allowed;
 }
 .input:focus,
 .select:focus {
@@ -1705,28 +1714,13 @@ body {
     <div class="modalBackdrop" id="welcomeModal" hidden>
       <div class="modal" role="dialog" aria-modal="true">
         <div class="modal__header">
-          <h3 class="modal__title">💾 데이터 저장 안내</h3>
+          <h3 class="modal__title">데이터 저장 안내</h3>
           <button class="modal__close" id="btnWelcomeClose" aria-label="닫기"></button>
         </div>
         <div class="modal__body">
           <p class="modal__desc" style="color: var(--ink); font-size: 14px; line-height: 1.8;">
-            이 앱의 데이터는 <strong>현재 컴퓨터의 브라우저</strong>에 자동 저장됩니다.<br />
-            컴퓨터를 바꾸거나 브라우저 데이터를 지우면 <strong>사라질 수 있습니다.</strong>
+            데이터는 현재 컴퓨터 브라우저에만 자동저장됩니다. 저장버튼을 눌러 파일로 저장하면 나중에 불러오기도 가능합니다.
           </p>
-          <div class="welcomeList">
-            <div class="welcomeItem">
-              <span class="welcomeItem__icon">📋</span>
-              <span>학기 초에 학생 명단을 입력한 뒤 <strong>저장하기</strong>로 백업 파일을 보관하세요.</span>
-            </div>
-            <div class="welcomeItem">
-              <span class="welcomeItem__icon">💻</span>
-              <span>다른 컴퓨터에서 사용할 때는 <strong>불러오기</strong>로 파일을 불러오면 됩니다.</span>
-            </div>
-            <div class="welcomeItem">
-              <span class="welcomeItem__icon">📅</span>
-              <span>자리 배치 기록도 저장 파일에 포함됩니다.</span>
-            </div>
-          </div>
         </div>
         <div class="modal__footer">
           <button class="btn btn--primary" id="btnWelcomeConfirm">확인</button>
@@ -2409,7 +2403,7 @@ body {
 
       const title = document.createElement("div");
       title.className = "block__title";
-      title.innerHTML = `<span>분단 B${b}</span><span>앞(칠판) → 뒤</span>`;
+      title.innerHTML = `<span>분단${b}</span>`;
 
       const rows = document.createElement("div");
       rows.className = "block__rows";
@@ -3512,11 +3506,14 @@ body {
     el.layoutBlocks.value = String(state.layout.blocks);
     renderRowsByBlockControls();
 
-    // 짝 유형은 짝 구조에서만, 남녀 줄 정렬은 남녀짝에서만 의미가 있음
+    // 짝 유형은 짝 구조에서만, 남녀 줄 정렬은 짝 구조 + 남녀짝에서만 의미가 있음.
+    // 혼자 앉기에서는 짝 유형 select를 숨기지 않고 회색으로 비활성화만 한다
+    // (혼자 앉기여도 방금까지 뭘 골라뒀는지 보이게).
     const curPairType = normalizePairType(state.settings.pairType);
     const isSingleMode = layoutMode(state.layout) === "single";
     el.pairType.value = curPairType;
-    el.pairTypeField.hidden = isSingleMode;
+    el.pairType.disabled = isSingleMode;
+    el.pairTypeField.classList.toggle("isDisabled", isSingleMode);
     el.pairAlignColumns.checked = !!state.settings.columnAlign;
     el.pairAlignField.hidden = isSingleMode || curPairType !== "mf";
 
@@ -3739,7 +3736,7 @@ body {
 
       const label = document.createElement("div");
       label.className = "perBlockRow__label";
-      label.textContent = `분단 B${i + 1} 줄 수`;
+      label.textContent = `분단${i + 1} 줄 수`;
 
       const input = document.createElement("input");
       input.className = "input";
