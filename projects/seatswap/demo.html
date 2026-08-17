@@ -812,6 +812,19 @@ body {
   align-items: start;
 }
 
+/* 혼자 앉기: 분단당 좌석이 1개뿐이라 짝 구조보다 훨씬 촘촘하게 붙인다.
+   분단 이름표로 구분되니 여백을 최소화해도 된다. */
+.blocks--single {
+  gap: 6px;
+}
+.blocks--single .block {
+  padding: 7px;
+  gap: 6px;
+}
+.blocks--single .block__rows {
+  gap: 5px;
+}
+
 .block {
   display: grid;
   gap: 9px;
@@ -845,10 +858,6 @@ body {
 }
 .rowPair--single {
   grid-template-columns: 1fr;
-}
-.rowPair--single .seat {
-  max-width: calc(50% - 4px);
-  justify-self: center;
 }
 
 /* ─── 좌석 타일 ─────────────────────────────────────────── */
@@ -1611,7 +1620,7 @@ body {
                     <hr class="randomHint__divider" />
                     <p><strong>짝 유형</strong> — 짝 구조에서 짝을 어떤 성별 조합으로 만들지 고릅니다.</p>
                     <p><strong>남녀짝</strong>은 남학생과 여학생을 한 명씩 묶습니다. <strong>동성짝</strong>은 남학생끼리, 여학생끼리 묶습니다. 인원이 딱 맞지 않아 남는 학생은 성별과 상관없이 자동으로 짝이 됩니다. <strong>랜덤짝</strong>은 성별을 따지지 않고 무작위로 묶습니다.</p>
-                    <p><strong>남녀 줄 정렬</strong>(남녀짝에서만) — 체크하면 모든 분단에서 같은 쪽 세로줄이 같은 성별로 맞춰집니다. 예를 들어 모든 분단의 왼쪽 줄은 남학생, 오른쪽 줄은 여학생으로 통일됩니다(분단마다 좌우가 바뀌지 않습니다). 체크하지 않으면 남녀 짝만 맞추고 좌우 위치는 무작위입니다.</p>
+                    <p><strong>남녀 줄 정렬</strong>(짝 구조는 남녀짝에서만, 혼자 앉기에서는 항상) — 체크하면 모든 분단에서 같은 쪽 세로줄이 같은 성별로 맞춰집니다. 예를 들어 짝 구조에서는 모든 분단의 왼쪽 줄은 남학생, 오른쪽 줄은 여학생으로 통일됩니다(분단마다 좌우가 바뀌지 않습니다). 혼자 앉기에서는 분단마다 좌석이 1개뿐이라 분단 하나를 통째로 한 성별로 채웁니다. 체크하지 않으면 좌우/분단 위치는 무작위입니다.</p>
                   </div>
                 </details>
               </div>
@@ -2392,7 +2401,13 @@ body {
     blocksWrap.className = "blocks";
 
     // 분단을 한 줄로 나열(모바일에서 줄바꿈)
-    blocksWrap.style.gridTemplateColumns = `repeat(${layout.blocks}, minmax(240px, 1fr))`;
+    // 혼자 앉기는 분단당 좌석이 1개뿐이라 짝 구조보다 훨씬 좁게 잡아서
+    // 분단 수가 많아져도(예: 6개) 한 화면 안에 다 들어오게 한다.
+    blocksWrap.classList.toggle("blocks--single", mode === "single");
+    blocksWrap.style.gridTemplateColumns =
+      mode === "single"
+        ? `repeat(${layout.blocks}, minmax(110px, 1fr))`
+        : `repeat(${layout.blocks}, minmax(240px, 1fr))`;
     blocksWrap.style.alignItems = "start";
 
     for (let b = 1; b <= layout.blocks; b++) {
@@ -2809,11 +2824,12 @@ body {
       prevPartners,
       backRowIds,
       pairType: normalizePairType(state.settings.pairType),
-      // 남녀 줄 정렬은 짝 구조 + 남녀짝일 때만 의미가 있음
+      // 남녀 줄 정렬: 짝 구조에서는 남녀짝일 때만, 혼자 앉기에서는 항상 의미가 있음
+      // (혼자 앉기는 줄마다 좌석이 1개뿐이라 "세로줄" = "분단" 전체)
       columnAlign:
         !!state.settings.columnAlign &&
-        mode !== "single" &&
-        normalizePairType(state.settings.pairType) === "mf",
+        (mode === "single" ||
+          normalizePairType(state.settings.pairType) === "mf"),
       freeStudents: state.students.filter((s) => !fixedStudentIds.has(s.id)),
       isOpenSeat: (sid) => !fixedMap[sid] && !state.seats[sid]?.emptyFixed,
     };
@@ -3159,15 +3175,83 @@ body {
     return [...males, ...females];
   }
 
+  function placeColumnAlignedSingle(assignments, pool, ctx) {
+    /*
+    혼자 앉기의 남녀 줄 정렬: 짝 구조의 "세로줄 하나 = 한 성별"과 같은 개념을
+    혼자 앉기에 맞게 적용합니다. 혼자 앉기는 줄마다 좌석이 1개뿐이라
+    세로줄이 곧 분단 전체이므로, 분단을 통째로 한 성별로만 채웁니다.
+    분단마다 그 시점에 더 많이 남은 성별을 배정해 인원을 자연스럽게 맞춥니다.
+    반환값: 아직 자리를 못 받은 학생 배열.
+  */
+    const { layout, isOpenSeat, backRowIds } = ctx;
+
+    const byBlock = new Map();
+    for (let b = 1; b <= layout.blocks; b++) {
+      const rows = layout.rowsByBlock?.[b - 1] ?? 0;
+      const seats = [];
+      for (let r = 1; r <= rows; r++) {
+        const sid = seatIdOf(b, r, "C");
+        if (isOpenSeat(sid)) seats.push({ row: r, seat: sid });
+      }
+      if (seats.length) byBlock.set(b, seats);
+    }
+
+    const males = shuffleInPlace(pool.filter((s) => s.gender === "male"));
+    const females = shuffleInPlace(pool.filter((s) => s.gender !== "male"));
+
+    const take = (from, seatId, preferBack) => {
+      const eligible = from.filter((s) => canSit(s, seatId));
+      if (eligible.length === 0) return null;
+      const costs = eligible.map((s) => {
+        const isBack = backRowIds.has(s.id);
+        return preferBack ? (isBack ? 0 : 1) : isBack ? 1 : 0;
+      });
+      const min = Math.min(...costs);
+      const tier = eligible.filter((_, i) => costs[i] === min);
+      const chosen = tier[Math.floor(Math.random() * tier.length)];
+      from.splice(
+        from.findIndex((s) => s.id === chosen.id),
+        1,
+      );
+      return chosen;
+    };
+
+    const blocks = shuffleInPlace([...byBlock.values()]);
+    for (const seats of blocks) {
+      seats.sort((a, b) => a.row - b.row);
+      const from = males.length >= females.length ? males : females;
+      for (const { row, seat } of seats) {
+        if (from.length === 0) break;
+        const preferBack = row <= FRONT_ROW_LIMIT;
+        const chosen = take(from, seat, preferBack);
+        if (!chosen) break;
+        assignments[seat] = chosen.id;
+      }
+    }
+
+    return [...males, ...females];
+  }
+
   function attemptSingleMode(ctx) {
     /*
     혼자 앉기 배치 한 번 시도: 짝 개념이 없으므로 "뒷자리 학생 앞으로"만 적용.
+    남녀 줄 정렬이 켜져 있으면 분단 단위 성별 배정을 먼저 하고 나머지를 채운다.
   */
     const { seatIds, fixedMap, freeStudents, isOpenSeat, backRowIds } = ctx;
 
     const assignments = {};
     for (const sid of seatIds) assignments[sid] = null;
     for (const [sid, stId] of Object.entries(fixedMap)) assignments[sid] = stId;
+
+    if (ctx.columnAlign) {
+      const leftover = placeColumnAlignedSingle(
+        assignments,
+        freeStudents.slice(),
+        ctx,
+      );
+      placeStragglers(assignments, leftover, ctx);
+      return assignments;
+    }
 
     const openSeats = seatIds.filter(isOpenSeat);
     const rowOf = (sid) => parseSeatId(sid)?.row ?? Number.MAX_SAFE_INTEGER;
@@ -3245,14 +3329,15 @@ body {
 
   function countColumnMix(assignments) {
     /*
-    세로줄(분단 × 왼쪽/오른쪽) 안에서 다수 성별과 다른 학생 수를 셉니다.
+    세로줄(짝 구조는 분단×왼쪽/오른쪽, 혼자 앉기는 분단 전체) 안에서
+    다수 성별과 다른 학생 수를 셉니다.
     0이면 어느 세로줄을 봐도 성별이 섞이지 않은 상태입니다.
   */
-    const cols = new Map(); // "B{b}-L" -> { male, female }
+    const cols = new Map(); // "B{b}-L"/"B{b}-C" -> { male, female }
     for (const [sid, stId] of Object.entries(assignments)) {
       if (!stId) continue;
       const p = parseSeatId(sid);
-      if (!p || p.side === "C") continue;
+      if (!p) continue;
       const st = studentById(stId);
       if (!st) continue;
       const key = `B${p.block}-${p.side}`;
@@ -3506,16 +3591,16 @@ body {
     el.layoutBlocks.value = String(state.layout.blocks);
     renderRowsByBlockControls();
 
-    // 짝 유형은 짝 구조에서만, 남녀 줄 정렬은 짝 구조 + 남녀짝에서만 의미가 있음.
-    // 혼자 앉기에서는 짝 유형 select를 숨기지 않고 회색으로 비활성화만 한다
-    // (혼자 앉기여도 방금까지 뭘 골라뒀는지 보이게).
+    // 짝 유형은 짝 구조에서만 의미가 있음. 혼자 앉기에서는 짝 유형 select를
+    // 숨기지 않고 회색으로 비활성화만 한다(방금까지 뭘 골라뒀는지 보이게).
+    // 남녀 줄 정렬은 짝 구조에서는 남녀짝일 때만, 혼자 앉기에서는 항상 의미가 있음.
     const curPairType = normalizePairType(state.settings.pairType);
     const isSingleMode = layoutMode(state.layout) === "single";
     el.pairType.value = curPairType;
     el.pairType.disabled = isSingleMode;
     el.pairTypeField.classList.toggle("isDisabled", isSingleMode);
     el.pairAlignColumns.checked = !!state.settings.columnAlign;
-    el.pairAlignField.hidden = isSingleMode || curPairType !== "mf";
+    el.pairAlignField.hidden = !isSingleMode && curPairType !== "mf";
 
     // 교사용 화면은 항상 미러(상하좌우 반전) 고정
     el.teacherRoomRoot.classList.add("isMirrored");
@@ -3662,9 +3747,9 @@ body {
     el.pairType.addEventListener("change", () => {
       state.settings.pairType = normalizePairType(el.pairType.value);
       saveState();
-      // 남녀 줄 정렬 표시 여부가 짝 유형에 따라 달라짐
+      // 남녀 줄 정렬 표시 여부가 짝 유형에 따라 달라짐(혼자 앉기는 항상 표시)
       el.pairAlignField.hidden =
-        layoutMode(state.layout) === "single" ||
+        layoutMode(state.layout) !== "single" &&
         state.settings.pairType !== "mf";
     });
 
