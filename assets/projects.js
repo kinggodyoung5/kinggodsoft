@@ -10,6 +10,9 @@
 //   category   : 카드를 묶을 그룹 이름 (자유롭게 새 카테고리 추가 가능)
 //   path       : 클릭 시 이동할 상세페이지 경로
 //   status     : "ready" | "empty" (empty면 "PLANNED" 표시 및 클릭 비활성화)
+//   externalUrl: (선택) 실제 도구가 이 저장소 밖의 다른 사이트에 있을 때만 지정.
+//                지정하면 상세페이지의 "전체 화면으로 열기" 버튼이 demo.html 대신
+//                이 주소로 바로 연결됨(픽셀아트·ROCK ATLAS처럼 개요+링크 카드일 때 사용).
 //
 // 새 프로젝트 추가 절차 (DEVELOPMENT.md 참고):
 //   1. 아래 배열에 항목 추가
@@ -27,6 +30,7 @@ const PROJECTS = [
     category: "교육용 도구",
     path: "projects/pixelart/",
     status: "ready",
+    externalUrl: "https://kinggodyoung5.github.io/pixel_art/pixelart_studio.html",
   },
   {
     id: "relay",
@@ -59,6 +63,7 @@ const PROJECTS = [
     category: "취미용 개발",
     path: "projects/rockatlas/",
     status: "ready",
+    externalUrl: "https://kinggodyoung5.github.io/rockatlas/",
   },
 ];
 

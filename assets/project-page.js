@@ -117,7 +117,11 @@ function renderMarkdown(md) {
           </div>
         </div>
         <div class="demo-actions">
-          <a class="btn" href="./demo.html" target="_blank" rel="noopener">전체 화면으로 열기 →</a>
+          ${
+            project.externalUrl
+              ? `<a class="btn" href="${project.externalUrl}" target="_blank" rel="noopener">도구 바로가기 →</a>`
+              : `<a class="btn" href="./demo.html" target="_blank" rel="noopener">전체 화면으로 열기 →</a>`
+          }
         </div>
       </section>
       <section>
