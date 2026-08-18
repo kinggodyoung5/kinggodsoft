@@ -49,6 +49,15 @@ const PROJECTS = [
     status: "ready",
   },
   {
+    id: "wordchain",
+    title: "끝말잇기",
+    description: "봇과 1대1 싱글 모드 + Firebase 실시간 대결 모드를 지원하는 끝말잇기 게임",
+    difficulty: "고급",
+    category: "취미 프로젝트",
+    path: "projects/wordchain/",
+    status: "ready",
+  },
+  {
     id: "web-main",
     title: "메인 웹 프로젝트",
     description: "나중에 채울 예정",
