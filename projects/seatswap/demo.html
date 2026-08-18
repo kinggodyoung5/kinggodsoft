@@ -1,0 +1,3866 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>자리바꾸기</title>
+    <meta
+      name="description"
+      content="교사용/학생용 교실 자리바꾸기 (정적 웹앱, LocalStorage, JSON Import/Export)"
+    />
+    <style>
+/*
+  자리바꾸기 — 스타일시트 (전면 재설계)
+  - 차분한 슬레이트 크롬 + 인디고 포인트
+  - 좌석은 납작한 타일, 정보는 뱃지/칩으로 분리
+  - 교사용/학생용 공통 컴포넌트
+*/
+
+:root {
+  /* 표면 */
+  --bg: #eceff5;
+  --canvas: #f6f8fb;
+  --panel: #ffffff;
+  --sunken: #f1f4f9;
+
+  /* 텍스트 */
+  --ink: #111827;
+  --ink2: #374151;
+  --muted: #6b7280;
+  --faint: #9ca3af;
+
+  /* 선 */
+  --line: #e3e8ef;
+  --line2: #d3dae5;
+
+  /* 포인트 */
+  --accent: #4f46e5;
+  --accent2: #7c3aed;
+  --accent-soft: #eef2ff;
+  --accent-line: #c7d2fe;
+
+  /* 의미 색 */
+  --male: #0369a1;
+  --male-soft: #e0f2fe;
+  --female: #be185d;
+  --female-soft: #fce7f3;
+  --ok: #047857;
+  --ok-soft: #d1fae5;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+
+  /* 교실 오브젝트 */
+  --slate: #1f2937;
+  --slate2: #111827;
+
+  /* 기타 */
+  --r-lg: 16px;
+  --r-md: 11px;
+  --r-sm: 8px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.1);
+  --shadow-lg: 0 18px 40px -12px rgba(16, 24, 40, 0.28);
+  --font:
+    "Pretendard", "Pretendard Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 상단 바 ────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 18px;
+  height: 60px;
+  background: var(--slate2);
+  color: #fff;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+.brand__title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.topbar__nav {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.tab {
+  display: block;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.62);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.tab:hover {
+  color: #fff;
+}
+.tab.isActive {
+  background: #fff;
+  color: var(--slate2);
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.autoSaveChip {
+  display: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.autoSaveChip.isVisible {
+  display: block;
+}
+
+/* 상단 바 안의 버튼은 어두운 배경용으로 반전 */
+.topbar .btn {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+  height: 34px;
+  padding: 0 13px;
+  font-size: 12.5px;
+}
+.topbar .btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.26);
+  color: #fff;
+}
+.topbar__helpBtn {
+  width: 34px;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  font-size: 14px !important;
+  font-weight: 800;
+}
+
+.btn--file {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.btn--file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ─── 버튼 ──────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line2);
+  background: #fff;
+  color: var(--ink2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.08s ease;
+}
+.btn:hover {
+  background: var(--sunken);
+  border-color: var(--faint);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: #4338ca;
+  border-color: #4338ca;
+}
+
+.btn--danger {
+  background: #fff;
+  border-color: #f3c9c9;
+  color: var(--danger);
+}
+.btn--danger:hover {
+  background: var(--danger-soft);
+  border-color: #eba9a9;
+}
+
+/* ─── 페이지 골격 ────────────────────────────────────────── */
+
+.page {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* ─── 왼쪽 설정 패널 ─────────────────────────────────────── */
+
+.panel {
+  display: grid;
+  gap: 12px;
+  position: sticky;
+  top: 78px;
+}
+.panel__title {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fbfcfe, #f6f8fb);
+}
+.card__title::before {
+  content: "";
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.card__body {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+}
+
+.hint {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--muted);
+  padding: 10px 11px;
+  border-radius: var(--r-md);
+  background: var(--sunken);
+  border: 1px solid var(--line);
+}
+.hint strong {
+  color: var(--ink2);
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.row--wrap {
+  flex-wrap: wrap;
+}
+.row--gap {
+  gap: 8px;
+}
+
+/* ─── 폼 요소 ───────────────────────────────────────────── */
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 88px auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.field__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.field--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.field--inline .field__label {
+  white-space: nowrap;
+}
+.field--inline.isDisabled {
+  opacity: 0.5;
+}
+
+.input,
+.select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line2);
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+.input::placeholder {
+  color: var(--faint);
+  font-weight: 500;
+}
+.input:disabled,
+.select:disabled {
+  background: var(--sunken);
+  color: var(--faint);
+  cursor: not-allowed;
+}
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+}
+.select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  cursor: pointer;
+}
+.input--sm {
+  width: 74px;
+  height: 32px;
+}
+.select--sm {
+  width: auto;
+  min-width: 112px;
+  height: 32px;
+}
+
+/* 체크박스형 옵션 */
+.checkField {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line2);
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease;
+}
+.checkField:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.checkField input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.checkField__text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink2);
+  white-space: nowrap;
+}
+.checkField__note {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.checkField:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.checkField:has(input:checked) .checkField__text {
+  color: var(--accent);
+}
+
+/* ─── 학생 목록 ─────────────────────────────────────────── */
+
+.studentList {
+  display: grid;
+  gap: 5px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+  margin: -4px;
+}
+.studentList::-webkit-scrollbar {
+  width: 8px;
+}
+.studentList::-webkit-scrollbar-thumb {
+  background: var(--line2);
+  border-radius: 99px;
+}
+
+.studentItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: grab;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease;
+}
+.studentItem:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.studentItem:active {
+  cursor: grabbing;
+}
+.studentItem__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.studentItem__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studentItem__actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.studentItem:hover .studentItem__actions {
+  opacity: 1;
+}
+.studentItem__actions .btn {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  box-shadow: none;
+}
+
+.badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.badge--male {
+  background: var(--male-soft);
+  color: var(--male);
+}
+.badge--female {
+  background: var(--female-soft);
+  color: var(--female);
+}
+
+/* ─── 좌석 구조 설정 ────────────────────────────────────── */
+
+.layoutStructure {
+  display: grid;
+  gap: 10px;
+}
+.perBlockRows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.perBlockRow {
+  display: grid;
+  grid-template-columns: 1fr 54px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 9px;
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  border: 1px solid var(--line);
+}
+.perBlockRow__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perBlockRow .input {
+  height: 28px;
+  padding: 0 6px;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* ─── 오른쪽 무대 ───────────────────────────────────────── */
+
+.stage {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stage__top {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.stage__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stage__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.stage__lead {
+  margin: 0;
+  flex: 1;
+  min-width: 240px;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: #3730a3;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip--history {
+  background: transparent;
+  color: var(--faint);
+  border-style: dashed;
+}
+.chip--history.hasHistory {
+  background: var(--ok-soft);
+  border: 1px solid #a7e3c8;
+  border-style: solid;
+  color: var(--ok);
+}
+
+.stage__randomRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.stage__randomInputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 안내 아코디언 */
+.randomHint {
+  margin-left: auto;
+  font-size: 12px;
+}
+.randomHint__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 5px 2px;
+  user-select: none;
+}
+.randomHint__title:hover {
+  color: var(--accent);
+}
+.randomHint__title::-webkit-details-marker {
+  display: none;
+}
+.randomHint__title::before {
+  content: "?";
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.4px solid currentColor;
+  font-size: 10px;
+  font-weight: 800;
+}
+.randomHint__body {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  color: var(--ink2);
+  line-height: 1.75;
+  max-width: 620px;
+}
+.randomHint__body p {
+  margin: 0 0 9px;
+}
+.randomHint__body p:last-child {
+  margin-bottom: 0;
+}
+.randomHint__body strong {
+  color: var(--accent);
+  font-weight: 800;
+}
+.randomHint__body em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink);
+}
+.randomHint__divider {
+  border: 0;
+  border-top: 1px solid var(--line2);
+  margin: 12px 0;
+}
+
+/* ─── 교실 ──────────────────────────────────────────────── */
+
+.classroomWrap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.roomRoot {
+  position: relative;
+}
+
+.classroomShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: stretch;
+}
+.classroomMain {
+  min-width: 0;
+}
+.classroomSide {
+  border-left: 1px dashed var(--line2);
+  background: var(--sunken);
+}
+
+.classroomHeader {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.classroomHeader--main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.board {
+  display: grid;
+  place-items: center;
+  height: 46px;
+  border-radius: var(--r-md);
+  background: var(--slate);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.doors {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 12px;
+  gap: 12px;
+}
+.door {
+  display: grid;
+  place-items: center;
+  height: 62px;
+  border-radius: var(--r-md);
+  border: 2px dashed var(--line2);
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.classroom {
+  padding: 16px;
+  background: var(--canvas);
+}
+
+.blocks {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+/* 혼자 앉기: 분단당 좌석이 1개뿐이라 짝 구조보다 훨씬 촘촘하게 붙인다.
+   분단 이름표로 구분되니 여백을 최소화해도 된다. */
+.blocks--single {
+  gap: 6px;
+}
+.blocks--single .block {
+  padding: 7px;
+  gap: 6px;
+}
+.blocks--single .block__rows {
+  gap: 5px;
+}
+
+.block {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.block__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--faint);
+  letter-spacing: 0.05em;
+}
+.block__title span:first-child {
+  color: var(--accent);
+}
+.block__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.rowPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.rowPair--single {
+  grid-template-columns: 1fr;
+}
+
+/* ─── 좌석 타일 ─────────────────────────────────────────── */
+
+.seat {
+  position: relative;
+  height: 84px;
+  padding: 8px 9px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line2);
+  background: #fff;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
+  overflow: hidden;
+  cursor: default;
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+.seat::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--line2);
+}
+.seat:hover {
+  border-color: var(--faint);
+  box-shadow: var(--shadow-md);
+}
+.seat.isDragOver {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+}
+
+.seat__meta {
+  display: flex;
+  align-items: flex-start;
+  min-height: 15px;
+}
+.seat__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.tag--maleOnly {
+  background: var(--male-soft);
+  color: var(--male);
+}
+.tag--femaleOnly {
+  background: var(--female-soft);
+  color: var(--female);
+}
+.tag--fixed {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.tag--emptyFixed {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.seat__name {
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seat__name.isEmpty {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 성별 표시(학생용 공개 후) */
+.seat.isMale::before {
+  background: var(--male);
+}
+.seat.isMale .seat__name {
+  color: var(--male);
+}
+.seat.isFemale::before {
+  background: var(--female);
+}
+.seat.isFemale .seat__name {
+  color: var(--female);
+}
+
+.seat.isRevealed {
+  animation: seatPop 0.34s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+@keyframes seatPop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 교사용 좌석 조작 오버레이 */
+.seat__overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px;
+  background: rgba(17, 24, 39, 0.93);
+}
+.seat:hover .seat__overlay {
+  display: flex;
+}
+.overlayRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+.seatBtn {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.94);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.seatBtn:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.seatBtn.isOn {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.seatBtn.isWarn {
+  background: #d97706;
+  border-color: #d97706;
+}
+.seatBtn.isDanger {
+  background: rgba(220, 38, 38, 0.9);
+  border-color: rgba(220, 38, 38, 0.9);
+}
+.seatBtn.isPurple {
+  background: rgba(124, 58, 237, 0.85);
+  border-color: rgba(124, 58, 237, 0.85);
+}
+
+/* 교사용 뷰: 교실을 교사 시점으로 180도 회전 */
+.isMirrored {
+  transform: rotate(180deg);
+}
+.isMirrored .seat,
+.isMirrored .block__title,
+.isMirrored .board,
+.isMirrored .door {
+  transform: rotate(180deg);
+}
+
+[draggable="true"] {
+  user-select: none;
+}
+
+/* ─── 학생용 화면 ───────────────────────────────────────── */
+
+.studentStage {
+  display: grid;
+  gap: 14px;
+}
+.studentStage__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.studentStage__top .row {
+  margin-left: auto;
+}
+
+.reveal {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--slate2);
+  border: 1px solid #0b1220;
+}
+.reveal__machine {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.reveal__slot {
+  display: grid;
+  place-items: center;
+  height: 88px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reveal__bar {
+  display: grid;
+  gap: 9px;
+}
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.progress__fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.18s ease;
+}
+.reveal__text {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* ─── 토스트 ────────────────────────────────────────────── */
+
+.toastHost {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  pointer-events: none;
+}
+.toast {
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: var(--slate2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.22s ease;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast--warn {
+  background: #92400e;
+}
+.toast--err {
+  background: #991b1b;
+}
+
+/* ─── 모달 ──────────────────────────────────────────────── */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(3px);
+}
+.modalBackdrop[hidden] {
+  display: none;
+}
+.modal {
+  width: min(520px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.modal__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.modal__close {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.modal__close:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+.modal__body {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  overflow-y: auto;
+}
+.modal__desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.modal__textarea {
+  width: 100%;
+  min-height: 190px;
+  padding: 11px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line2);
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.7;
+  resize: vertical;
+}
+.modal__textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+}
+.modal__genderRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.modal__genderOpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.modal__genderOpt input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--sunken);
+}
+
+.welcomeList {
+  display: grid;
+  gap: 9px;
+}
+.welcomeItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: var(--r-md);
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink2);
+}
+.welcomeItem strong {
+  color: var(--accent);
+  font-weight: 800;
+}
+.welcomeItem__icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  margin-top: 1px;
+}
+
+/* ─── 반응형 ────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    position: static;
+    order: 2;
+  }
+  .stage {
+    order: 1;
+  }
+  .perBlockRows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 분단은 JS가 inline으로 최소 240px 컬럼을 지정하므로,
+   좁은 화면에서는 !important로 되돌려 잘리지 않고 접히게 한다. */
+@media (max-width: 900px) {
+  .blocks {
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .blocks {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .stage__lead {
+    flex: 1 0 100%;
+  }
+  .classroom {
+    padding: 12px;
+  }
+  .doors {
+    padding: 12px 8px;
+  }
+  .door {
+    height: 52px;
+    font-size: 11px;
+  }
+  .topbar__actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .page {
+    padding: 12px;
+  }
+  .panel {
+    top: 0;
+  }
+  .form {
+    grid-template-columns: 1fr;
+  }
+  .perBlockRows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .classroomShell {
+    grid-template-columns: minmax(0, 1fr) 74px;
+  }
+  .classroomHeader--main {
+    grid-template-columns: 1fr;
+  }
+  .reveal__machine {
+    grid-template-columns: 1fr;
+  }
+  .reveal__slot {
+    height: 62px;
+    font-size: 21px;
+  }
+  .seat {
+    height: 72px;
+  }
+  .seat__name {
+    font-size: 14px;
+  }
+  .randomHint {
+    margin-left: 0;
+    width: 100%;
+  }
+  .stage__lead {
+    min-width: 0;
+  }
+}
+
+/* ─── 인쇄 ──────────────────────────────────────────────── */
+
+@media print {
+  @page {
+    margin: 12mm 10mm;
+  }
+
+  .topbar,
+  .panel,
+  .stage__top,
+  .reveal,
+  .studentStage__top,
+  .toastHost,
+  .modalBackdrop,
+  #viewStudent {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    margin: 0;
+  }
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+  #viewTeacher {
+    display: block !important;
+  }
+  .layout {
+    display: block;
+  }
+
+  .classroomWrap {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .classroom {
+    background: #fff;
+  }
+
+  .seat__tags,
+  .seat__overlay {
+    display: none !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .seat {
+    height: auto;
+    min-height: 54px;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .block {
+    break-inside: avoid;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand__title">자리바꾸기</div>
+      </div>
+      <nav class="topbar__nav" aria-label="화면 전환">
+        <a class="tab" href="#teacher" id="tabTeacher">교사용</a>
+        <a class="tab" href="#student" id="tabStudent">학생용</a>
+      </nav>
+      <div class="topbar__actions">
+        <span class="autoSaveChip" id="autoSaveChip"></span>
+        <label class="btn btn--file" id="btnExportJson" role="button" tabindex="0">저장하기</label>
+        <label class="btn btn--file">
+          불러오기
+          <input type="file" id="fileImportJson" accept="application/json" />
+        </label>
+        <label class="btn btn--file" onclick="window.print()" style="cursor:pointer">인쇄</label>
+        <button class="btn topbar__helpBtn" id="btnHelp" title="사용 안내">?</button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="toastHost" aria-live="polite" aria-atomic="true" id="toastHost"></section>
+
+      <!-- 교사용 화면 -->
+      <section class="view" id="viewTeacher" hidden>
+        <div class="layout">
+          <aside class="panel">
+            <h2 class="panel__title">교사용 설정</h2>
+
+            <div class="card">
+              <div class="card__title">초기화</div>
+              <div class="card__body">
+                <div class="row">
+                  <button class="btn" id="btnClearStudents">학생 초기화</button>
+                  <button class="btn" id="btnClearSeatsOnly">자리 초기화</button>
+                  <button class="btn" id="btnResetAll">전체 초기화</button>
+                </div>
+                <div class="hint">
+                  - <strong>학생 초기화</strong> — 등록된 학생 명단을 모두 지웁니다. 좌석 구조와 설정은 그대로 유지됩니다.<br />
+                  - <strong>자리 초기화</strong> — 현재 자리 배치, 고정 좌석, 빈자리 고정을 모두 지웁니다. 학생 명단은 그대로 유지됩니다.<br />
+                  - <strong>전체 초기화</strong> — 학생 명단, 자리 배치, 모든 설정을 처음 상태로 되돌립니다.
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card__title">학생 목록</div>
+              <div class="card__body">
+                <form id="formAddStudent" class="form">
+                  <label class="field">
+                    <span class="field__label">이름</span>
+                    <input class="input" name="name" autocomplete="off" placeholder="예: 김철수" required />
+                  </label>
+                  <label class="field">
+                    <span class="field__label">성별</span>
+                    <select class="select" name="gender">
+                      <option value="male">남</option>
+                      <option value="female">여</option>
+                    </select>
+                  </label>
+                  <button class="btn btn--primary" type="submit">추가</button>
+                </form>
+
+                <div class="row row--wrap row--gap">
+                  <input class="input" id="studentSearch" placeholder="검색 (이름)" />
+                  <select class="select" id="studentFilterGender" title="성별 필터">
+                    <option value="all">전체</option>
+                    <option value="male">남</option>
+                    <option value="female">여</option>
+                  </select>
+                  <button class="btn" id="btnShuffleStudents" style="display:none">목록 섞기</button>
+                  <button class="btn" id="btnBulkAdd">일괄 입력</button>
+                </div>
+
+                <div class="studentList" id="studentList"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card__title">분단(좌석) 구조</div>
+              <div class="card__body">
+                <div class="layoutStructure">
+                  <label class="field">
+                    <span class="field__label">좌석 구조</span>
+                    <select class="select" id="layoutMode">
+                      <option value="pair">짝 구조 (1줄 2명)</option>
+                      <option value="single">혼자 앉기 (1줄 1명)</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field__label">분단 개수</span>
+                    <input class="input" type="number" min="1" max="10" step="1" id="layoutBlocks" />
+                  </label>
+                  <div class="field">
+                    <span class="field__label">분단별 줄 수</span>
+                    <div class="perBlockRows" id="layoutRowsByBlock" aria-label="분단별 줄 수 설정"></div>
+                  </div>
+                </div>
+                <div class="row row--gap">
+                  <button class="btn btn--primary" id="btnApplyLayout">적용</button>
+                  <button class="btn" id="btnClearAssignments">배치 지우기</button>
+                </div>
+                <div class="hint">
+                  - <strong>짝 구조</strong>는 1줄에 2명, <strong>혼자 앉기</strong>는 1줄에 1명이 앉습니다.<br />
+                  - 분단 개수·줄 수는 각각 최대 10까지 자유롭게 입력할 수 있습니다.<br />
+                  - 학생 수에 맞춰 빈 자리는 자동 표시됩니다.
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="stage">
+            <div class="stage__top">
+              <div class="stage__titleRow">
+                <p class="stage__lead">교사용에서 자리를 배치한대로 학생용에 그대로 결과가 나옵니다</p>
+                <div class="chip" id="seatCountChip">좌석: -</div>
+                <div class="chip" id="studentCountChip">학생: -</div>
+                <div class="chip chip--history" id="historyChip">기록 없음</div>
+              </div>
+              <div class="stage__randomRow">
+                <div class="stage__randomInputs">
+                  <label class="field field--inline" id="pairTypeField">
+                    <span class="field__label">짝 유형</span>
+                    <select class="select select--sm" id="pairType">
+                      <option value="random">랜덤짝</option>
+                      <option value="mf">남녀짝</option>
+                      <option value="same">동성짝</option>
+                    </select>
+                  </label>
+                  <label class="checkField" id="pairAlignField">
+                    <input type="checkbox" id="pairAlignColumns" />
+                    <span class="checkField__text">남녀 줄 정렬</span>
+                    <span class="checkField__note">(같은 성별로 줄을 맞춥니다)</span>
+                  </label>
+                </div>
+                <div class="row row--gap">
+                  <button class="btn btn--primary" id="btnRunRandom">랜덤 배치 실행</button>
+                  <button class="btn" id="btnSaveHistory">결과 기록</button>
+                </div>
+                <details class="randomHint">
+                  <summary class="randomHint__title">결과 기록이란?</summary>
+                  <div class="randomHint__body">
+                    <p>랜덤 배치를 실행하면 <em>이번 결과를 기록할지</em> 묻는 창이 자동으로 뜹니다. 기록하면 다음 번 랜덤 배치 때 아래 두 가지가 자동으로 적용됩니다.</p>
+                    <p>① <strong>뒷자리 학생 앞으로</strong> — 이번에 맨 뒷줄에 앉은 학생은 다음 배치에서 앞줄에 우선 배정됩니다.</p>
+                    <p>② <strong>같은 짝 피하기</strong> — 이번에 짝(같은 줄 옆자리)이었던 학생끼리는 다음 배치에서 다시 짝이 되지 않도록 배정됩니다. 이 기능은 <em>짝 구조</em>에서만 작동하며, 혼자 앉기에서는 적용되지 않습니다.</p>
+                    <p>기록하지 않으면 이 두 가지 기능이 적용되지 않습니다. 수동으로 기록하고 싶을 때는 <em>결과 기록</em> 버튼을 직접 눌러도 됩니다.</p>
+                    <hr class="randomHint__divider" />
+                    <p><strong>짝 유형</strong> — 짝 구조에서 짝을 어떤 성별 조합으로 만들지 고릅니다.</p>
+                    <p><strong>남녀짝</strong>은 남학생과 여학생을 한 명씩 묶습니다. <strong>동성짝</strong>은 남학생끼리, 여학생끼리 묶습니다. 인원이 딱 맞지 않아 남는 학생은 성별과 상관없이 자동으로 짝이 됩니다. <strong>랜덤짝</strong>은 성별을 따지지 않고 무작위로 묶습니다.</p>
+                    <p><strong>남녀 줄 정렬</strong>(짝 구조는 남녀짝에서만, 혼자 앉기에서는 항상) — 체크하면 모든 분단에서 같은 쪽 세로줄이 같은 성별로 맞춰집니다. 예를 들어 짝 구조에서는 모든 분단의 왼쪽 줄은 남학생, 오른쪽 줄은 여학생으로 통일됩니다(분단마다 좌우가 바뀌지 않습니다). 혼자 앉기에서는 분단마다 좌석이 1개뿐이라 분단 하나를 통째로 한 성별로 채웁니다. 체크하지 않으면 좌우/분단 위치는 무작위입니다.</p>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="classroomWrap">
+              <div class="roomRoot isMirrored" id="teacherRoomRoot">
+                <div class="classroomShell">
+                  <div class="classroomMain">
+                    <div class="classroomHeader classroomHeader--main">
+                      <div class="board">칠판</div>
+                    </div>
+                    <div class="classroom" id="teacherClassroom" aria-label="좌석 배치 영역"></div>
+                  </div>
+                  <aside class="classroomSide" aria-label="문 영역">
+                    <div class="doors">
+                      <div class="door door--front" aria-label="앞문">앞문</div>
+                      <div class="door door--back" aria-label="뒷문">뒷문</div>
+                    </div>
+                  </aside>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- 학생용 화면 -->
+      <section class="view" id="viewStudent" hidden>
+        <div class="studentStage">
+          <div class="studentStage__top">
+            <h2 class="stage__title">자리 발표 (학생용)</h2>
+            <div class="row row--gap row--wrap">
+              <button class="btn btn--primary" id="btnStudentReveal">랜덤 추첨 시작</button>
+              <button class="btn" id="btnStudentShowFinal">바로 결과 보기</button>
+              <button class="btn" id="btnStudentReset">가리기</button>
+            </div>
+          </div>
+
+          <div class="reveal">
+            <div class="reveal__machine" id="revealMachine" aria-label="랜덤 연출 영역">
+              <div class="reveal__slot" id="slotA">-</div>
+              <div class="reveal__slot" id="slotB">-</div>
+              <div class="reveal__slot" id="slotC">-</div>
+            </div>
+            <div class="reveal__bar">
+              <div class="progress" aria-label="진행도">
+                <div class="progress__fill" id="revealProgress"></div>
+              </div>
+              <div class="reveal__text" id="revealText">버튼을 눌러 추첨을 시작하세요.</div>
+            </div>
+          </div>
+
+          <div class="classroomWrap">
+            <div class="roomRoot" id="studentRoomRoot">
+              <div class="classroomShell">
+                <div class="classroomMain">
+                  <div class="classroomHeader classroomHeader--main">
+                    <div class="board">칠판</div>
+                  </div>
+                  <div class="classroom" id="studentClassroom" aria-label="학생용 좌석 배치 영역"></div>
+                </div>
+                <aside class="classroomSide" aria-label="문 영역">
+                  <div class="doors">
+                    <div class="door door--front" aria-label="앞문">앞문</div>
+                    <div class="door door--back" aria-label="뒷문">뒷문</div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 일괄 입력 모달 -->
+    <div class="modalBackdrop" id="bulkModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkModalTitle">
+        <div class="modal__header">
+          <h3 class="modal__title" id="bulkModalTitle">학생 일괄 입력</h3>
+          <button class="modal__close" id="btnBulkClose" aria-label="닫기">✕</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__desc">이름을 한 줄에 한 명씩 입력하세요. 엑셀·메모장에서 복사해서 붙여넣기도 됩니다.</p>
+          <textarea class="modal__textarea" id="bulkTextarea" placeholder="김민준&#10;이서연&#10;박도윤&#10;..."></textarea>
+          <div class="modal__genderRow">
+            <span class="field__label">성별</span>
+            <label class="modal__genderOpt"><input type="radio" name="bulkGender" value="male" checked /> 남자</label>
+            <label class="modal__genderOpt"><input type="radio" name="bulkGender" value="female" /> 여자</label>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary" id="btnBulkConfirm">추가하기</button>
+          <button class="btn" id="btnBulkCancel">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사용 안내 모달 -->
+    <div class="modalBackdrop" id="welcomeModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal__header">
+          <h3 class="modal__title">데이터 저장 안내</h3>
+          <button class="modal__close" id="btnWelcomeClose" aria-label="닫기"></button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__desc" style="color: var(--ink); font-size: 14px; line-height: 1.8;">
+            데이터는 현재 컴퓨터 브라우저에만 자동저장됩니다. 저장버튼을 눌러 파일로 저장하면 나중에 불러오기도 가능합니다.
+          </p>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary" id="btnWelcomeConfirm">확인</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+(() => {
+  /*
+  자리바꾸기 - app.js (Vanilla JS)
+
+  설계 원칙(요구사항 반영):
+  - 서버 비용 0원: 정적 웹앱 + LocalStorage + JSON Import/Export
+  - Firebase는 옵션: 설정된 경우에만 수동 Push/Pull로 읽기/쓰기 최소화
+  - 랜덤처럼 보이되 교사 지정(고정 좌석)과 성별 제한을 반드시 반영
+  - 직전 기록에서 짝이었던 학생끼리 다시 짝이 되지 않도록 회피(짝 구조에서만)
+  - 직전 기록에서 맨 뒷줄이었던 학생을 다음 배치에서 앞줄로 우선 배정
+
+  데이터 구조(저장/내보내기 포함):
+  - students: [{ id, name, gender }]
+  - layout: { blocks, rowsByBlock, mode }  // mode: 'pair'(1줄 2석) | 'single'(1줄 1석), 분단별 줄 수
+  - settings: { pairType }  // 'random'|'mf'(남녀)|'mm'(남남)|'ff'(여여)
+  - seats: { [seatId]: { genderConstraint: 'any'|'male'|'female', emptyFixed } }
+  - assignments: { [seatId]: studentId|null }
+  - fixed: { [seatId]: studentId }   // 교사가 고정한 자리
+  - history: [{ at, assignments, pairs }] // 최근 배치 기록(짝 목록 포함)
+
+  좌석 ID:
+  - 짝 구조: "B{block}-R{row}-L" / "B{block}-R{row}-R"
+  - 혼자 앉기: "B{block}-R{row}-C"
+*/
+
+  // ---------------------------
+  // 상수/기본값
+  // ---------------------------
+
+  const APP_STORAGE_KEY = "kinggodsoft-seatswap:v1";
+  const MAX_BLOCKS = 10;
+  const MAX_ROWS = 10;
+  const DEFAULT_LAYOUT = { blocks: 3, rowsByBlock: [5, 5, 5], mode: "pair" }; // 분단별 줄 수(3분단), mode: 'pair'(1줄 2명) | 'single'(1줄 1명)
+
+  // 짝 유형: 'mf'(남녀짝) | 'same'(동성짝) | 'random'(랜덤짝)
+  const PAIR_TYPES = ["random", "mf", "same"];
+  const DEFAULT_SETTINGS = {
+    pairType: "random",
+    // 남녀짝에서 한 분단의 세로줄을 같은 성별로 맞출지 여부
+    columnAlign: false,
+  };
+
+  // 랜덤 배치 내부 시도 횟수(사용자에게 노출하지 않음)
+  const INTERNAL_ATTEMPTS = 240;
+  // "앞줄"로 간주하는 줄 번호(뒷자리 학생을 여기로 올림)
+  const FRONT_ROW_LIMIT = 2;
+
+  // 학생용 연출(슬롯) 설정
+  const REVEAL_DURATION_MS = 3400;
+  const REVEAL_TICK_MS = 70;
+
+  // 학생용 화면: reveal 완료 여부 (false면 학생 화면에 이름 숨김)
+  let revealDone = false;
+
+  // ---------------------------
+  // 유틸
+  // ---------------------------
+
+  function uid(prefix = "id") {
+    // 사람이 읽기 쉬운 ID를 만들기 위한 간단한 UID
+    const rnd = Math.random().toString(16).slice(2, 8);
+    const t = Date.now().toString(16).slice(-6);
+    return `${prefix}_${t}_${rnd}`;
+  }
+
+  function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function downloadJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function toast(message, type = "ok", ms = 2200) {
+    const host = $("#toastHost");
+    const el = document.createElement("div");
+    el.className = `toast toast--${type}`;
+    el.textContent = message;
+    host.appendChild(el);
+    setTimeout(() => el.remove(), ms);
+  }
+
+  function $(sel) {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`필수 요소를 찾지 못했습니다: ${sel}`);
+    return el;
+  }
+
+  function safeNumber(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  // ---------------------------
+  // 좌석/모둠 계산
+  // ---------------------------
+
+  function seatIdOf(blockIndex1, rowIndex1, side /* 'L'|'R'|'C' */) {
+    return `B${blockIndex1}-R${rowIndex1}-${side}`;
+  }
+
+  function layoutMode(layout) {
+    return layout?.mode === "single" ? "single" : "pair";
+  }
+
+  function allSeatIds(layout) {
+    // 좌석 순서가 중요: 앞(칠판)에서 뒤로, 왼쪽 분단부터 오른쪽 분단
+    const mode = layoutMode(layout);
+    const ids = [];
+    for (let b = 1; b <= layout.blocks; b++) {
+      const rows = layout.rowsByBlock?.[b - 1] ?? 0;
+      for (let r = 1; r <= rows; r++) {
+        if (mode === "single") {
+          ids.push(seatIdOf(b, r, "C"));
+        } else {
+          ids.push(seatIdOf(b, r, "L"));
+          ids.push(seatIdOf(b, r, "R"));
+        }
+      }
+    }
+    return ids;
+  }
+
+  function parseSeatId(seatId) {
+    // "B{b}-R{r}-L" | "B{b}-R{r}-R" | "B{b}-R{r}-C"
+    const m = /^B(\d+)-R(\d+)-(L|R|C)$/.exec(seatId);
+    if (!m) return null;
+    return { block: Number(m[1]), row: Number(m[2]), side: m[3] };
+  }
+
+  function normalizePairType(v) {
+    // 구버전의 남남짝(mm)/여여짝(ff)은 동성짝(same) 하나로 합쳐졌습니다.
+    if (v === "mm" || v === "ff") return "same";
+    return PAIR_TYPES.includes(v) ? v : "random";
+  }
+
+  function pairKey(a, b) {
+    return a < b ? `${a}|${b}` : `${b}|${a}`;
+  }
+
+  function pairsFromAssignments(assignments) {
+    /*
+    "짝" 정의: 같은 분단·같은 줄의 L/R 좌석에 나란히 앉은 두 학생.
+    - 혼자 앉기(C 좌석)에는 짝이 없으므로 제외됩니다.
+    - 좌석 ID만 보고 계산하므로 저장된 옛 기록에도 그대로 적용됩니다.
+  */
+    const byRow = new Map();
+    for (const [sid, stId] of Object.entries(assignments || {})) {
+      if (typeof stId !== "string" || !stId) continue;
+      const p = parseSeatId(sid);
+      if (!p || p.side === "C") continue;
+      const key = `B${p.block}-R${p.row}`;
+      if (!byRow.has(key)) byRow.set(key, {});
+      byRow.get(key)[p.side] = stId;
+    }
+    const out = [];
+    for (const v of byRow.values()) {
+      if (v.L && v.R) out.push([v.L, v.R]);
+    }
+    return out;
+  }
+
+  function computeBackRowStudentIds(assignments) {
+    /*
+    직전 배치에서 "각 분단의 맨 뒷줄"에 앉았던 학생들.
+    - 저장된 좌석 ID에서 분단별 최대 줄 번호를 직접 찾으므로,
+      그 사이 좌석 구조가 바뀌었어도 안전하게 동작합니다.
+  */
+    const maxRowByBlock = new Map();
+    const seated = [];
+    for (const [sid, stId] of Object.entries(assignments || {})) {
+      if (typeof stId !== "string" || !stId) continue;
+      const p = parseSeatId(sid);
+      if (!p) continue;
+      seated.push({ block: p.block, row: p.row, stId });
+      if (p.row > (maxRowByBlock.get(p.block) ?? 0)) {
+        maxRowByBlock.set(p.block, p.row);
+      }
+    }
+    const ids = new Set();
+    for (const s of seated) {
+      if (s.row === maxRowByBlock.get(s.block)) ids.add(s.stId);
+    }
+    return ids;
+  }
+
+  function pairMatchesType(a, b, pairType) {
+    if (pairType === "mf") return a.gender !== b.gender;
+    if (pairType === "same") return a.gender === b.gender;
+    return true; // random
+  }
+
+  function buildPairs(students, pairType, prevPartners) {
+    /*
+    요청한 짝 유형대로 최대한 묶고, 유형상 남는 학생들은 성별과 상관없이 자동으로 묶습니다.
+    묶을 때 직전 기록에서 짝이었던 조합은 최대한 피합니다.
+    반환: { pairs: [[학생,학생], ...], leftover: [학생] }  (leftover 길이 0 또는 1)
+  */
+    const males = shuffleInPlace(students.filter((s) => s.gender === "male"));
+    const females = shuffleInPlace(students.filter((s) => s.gender !== "male"));
+    const pairs = [];
+
+    // 서로 다른 두 풀에서 한 명씩 꺼내 짝 만들기
+    const takeCross = (poolA, poolB) => {
+      while (poolA.length > 0 && poolB.length > 0) {
+        const a = poolA.shift();
+        let i = poolB.findIndex((b) => !prevPartners.has(pairKey(a.id, b.id)));
+        if (i < 0) i = 0; // 모두 이전 짝이면 어쩔 수 없이 첫 번째
+        pairs.push([a, poolB.splice(i, 1)[0]]);
+      }
+    };
+    // 한 풀 안에서 두 명씩 짝 만들기
+    const takeSame = (pool) => {
+      while (pool.length >= 2) {
+        const a = pool.shift();
+        let i = pool.findIndex((b) => !prevPartners.has(pairKey(a.id, b.id)));
+        if (i < 0) i = 0;
+        pairs.push([a, pool.splice(i, 1)[0]]);
+      }
+    };
+
+    if (pairType === "mf") {
+      takeCross(males, females);
+    } else if (pairType === "same") {
+      // 남학생끼리, 여학생끼리 각각 묶음
+      takeSame(males);
+      takeSame(females);
+    }
+
+    // 유형대로 묶고 남은 학생들: 성별 무관 자동 매칭
+    const rest = shuffleInPlace([...males, ...females]);
+    takeSame(rest);
+
+    return { pairs: repairPairs(pairs, prevPartners, pairType), leftover: rest };
+  }
+
+  function repairPairs(pairs, prevPartners, pairType) {
+    /*
+    위 그리디 방식은 마지막에 남은 두 명이 하필 직전 짝인 경우를 피하지 못합니다.
+    그래서 짝이 반복된 곳을 찾아 다른 짝과 짝꿍을 맞바꿔(2-opt) 반복을 없앱니다.
+    - 맞바꾼 뒤 새로운 반복이 생기면 채택하지 않습니다.
+    - 요청한 짝 유형을 만족하던 짝 수가 줄어드는 교환도 채택하지 않습니다.
+  */
+    const isRepeat = (x, y) => prevPartners.has(pairKey(x.id, y.id));
+    const typeOk = (x, y) => (pairMatchesType(x, y, pairType) ? 1 : 0);
+
+    for (let i = 0; i < pairs.length; i++) {
+      if (!isRepeat(pairs[i][0], pairs[i][1])) continue;
+
+      const others = shuffleInPlace(
+        pairs.map((_, k) => k).filter((k) => k !== i),
+      );
+      for (const j of others) {
+        const [a, b] = pairs[i];
+        const [c, d] = pairs[j];
+        const before = typeOk(a, b) + typeOk(c, d);
+        const swaps = shuffleInPlace([
+          [
+            [a, c],
+            [b, d],
+          ],
+          [
+            [a, d],
+            [b, c],
+          ],
+        ]);
+        let fixed = false;
+        for (const [p1, p2] of swaps) {
+          if (isRepeat(p1[0], p1[1]) || isRepeat(p2[0], p2[1])) continue;
+          if (typeOk(p1[0], p1[1]) + typeOk(p2[0], p2[1]) < before) continue;
+          pairs[i] = p1;
+          pairs[j] = p2;
+          fixed = true;
+          break;
+        }
+        if (fixed) break;
+      }
+    }
+    return pairs;
+  }
+
+  // ---------------------------
+  // 상태(단일 소스)
+  // ---------------------------
+
+  function createEmptyState() {
+    const layout = deepClone(DEFAULT_LAYOUT);
+    const seatIds = allSeatIds(layout);
+    const seats = {};
+    const assignments = {};
+    for (const sid of seatIds) {
+      seats[sid] = { genderConstraint: "any" };
+      assignments[sid] = null;
+    }
+
+    return {
+      version: 1,
+      updatedAt: Date.now(),
+      settings: deepClone(DEFAULT_SETTINGS),
+      layout,
+      students: [],
+      seats,
+      assignments,
+      fixed: {},
+      history: [],
+    };
+  }
+
+  function loadState() {
+    const raw = localStorage.getItem(APP_STORAGE_KEY);
+    if (!raw) return createEmptyState();
+    try {
+      const parsed = JSON.parse(raw);
+      return migrateAndNormalizeState(parsed);
+    } catch {
+      return createEmptyState();
+    }
+  }
+
+  function saveState() {
+    state.updatedAt = Date.now();
+    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+    // 자동저장 상태 표시
+    const chip = document.getElementById("autoSaveChip");
+    if (chip) {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mi = String(now.getMinutes()).padStart(2, "0");
+      chip.textContent = `자동 저장됨 ${hh}:${mi}`;
+      chip.classList.add("isVisible");
+    }
+  }
+
+  function migrateAndNormalizeState(s) {
+    // 향후 버전 업을 대비한 최소 마이그레이션/정규화
+    const base = createEmptyState();
+    const next = { ...base, ...s };
+
+    // settings 보강 (구버전의 penaltyWeight/maxRetry는 더 이상 사용하지 않으므로 버림)
+    next.settings = {
+      pairType: normalizePairType(s.settings?.pairType),
+      columnAlign: !!s.settings?.columnAlign,
+    };
+
+    // layout 보강 (구버전 rowsPerBlock(number)도 지원, mode 없으면 'pair'로 하위호환)
+    const blocks = Math.max(
+      1,
+      Math.min(MAX_BLOCKS, safeNumber(s.layout?.blocks, base.layout.blocks)),
+    );
+    const legacyRows = safeNumber(s.layout?.rowsPerBlock, 0);
+    const rowsByBlockRaw = Array.isArray(s.layout?.rowsByBlock)
+      ? s.layout.rowsByBlock
+      : legacyRows > 0
+        ? Array.from({ length: blocks }, () => legacyRows)
+        : Array.from(
+            { length: blocks },
+            (_, i) => base.layout.rowsByBlock?.[i] ?? 5,
+          );
+
+    const rowsByBlock = Array.from({ length: blocks }, (_, i) => {
+      const v = safeNumber(rowsByBlockRaw[i], base.layout.rowsByBlock?.[i] ?? 5);
+      return Math.max(1, Math.min(MAX_ROWS, v));
+    });
+
+    const mode = s.layout?.mode === "single" ? "single" : "pair";
+
+    next.layout = { blocks, rowsByBlock, mode };
+
+    // students 정규화
+    next.students = Array.isArray(s.students)
+      ? s.students.filter(Boolean).map((st) => ({
+          id: st.id || uid("student"),
+          name: String(st.name || "").trim() || "이름없음",
+          gender: st.gender === "female" ? "female" : "male",
+        }))
+      : [];
+
+    // seats/assignments/fixed는 layout 기반으로 재생성 + 기존 데이터 병합
+    const seatIds = allSeatIds(next.layout);
+    next.seats = {};
+    next.assignments = {};
+    for (const sid of seatIds) {
+      const prevSeat = s.seats?.[sid];
+      next.seats[sid] = {
+        genderConstraint:
+          prevSeat?.genderConstraint === "male" ||
+          prevSeat?.genderConstraint === "female"
+            ? prevSeat.genderConstraint
+            : "any",
+        emptyFixed: !!prevSeat?.emptyFixed,
+      };
+
+      const prevAssign = s.assignments?.[sid] ?? null;
+      next.assignments[sid] =
+        typeof prevAssign === "string" ? prevAssign : null;
+    }
+
+    next.fixed = {};
+    const fixed = s.fixed || {};
+    for (const sid of Object.keys(fixed)) {
+      if (!seatIds.includes(sid)) continue;
+      const studentId = fixed[sid];
+      if (typeof studentId === "string") next.fixed[sid] = studentId;
+    }
+
+    // history 최소 정규화 (구버전의 groups는 버리고, 짝 정보는 좌석 ID에서 다시 계산)
+    next.history = Array.isArray(s.history)
+      ? s.history.slice(-30).map((h) => {
+          const assignments = h.assignments || {};
+          const rawPairs = Array.isArray(h.pairs)
+            ? h.pairs.filter(
+                (p) =>
+                  Array.isArray(p) &&
+                  typeof p[0] === "string" &&
+                  typeof p[1] === "string",
+              )
+            : [];
+          return {
+            at: safeNumber(h.at, Date.now()),
+            assignments,
+            pairs: rawPairs.length ? rawPairs : pairsFromAssignments(assignments),
+          };
+        })
+      : [];
+
+    // 고정 좌석의 assignment도 맞춰주기(일관성)
+    for (const [sid, studentId] of Object.entries(next.fixed)) {
+      next.assignments[sid] = studentId;
+    }
+
+    // 존재하지 않는 학생 ID가 배정/고정에 들어있는 경우 제거
+    const studentSet = new Set(next.students.map((x) => x.id));
+    for (const sid of seatIds) {
+      const a = next.assignments[sid];
+      if (a && !studentSet.has(a)) next.assignments[sid] = null;
+    }
+    for (const [sid, stId] of Object.entries(next.fixed)) {
+      if (!studentSet.has(stId)) delete next.fixed[sid];
+    }
+
+    return next;
+  }
+
+  let state = loadState();
+
+  // ---------------------------
+  // DOM 바인딩
+  // ---------------------------
+
+  const el = {
+    tabTeacher: $("#tabTeacher"),
+    tabStudent: $("#tabStudent"),
+    viewTeacher: $("#viewTeacher"),
+    viewStudent: $("#viewStudent"),
+
+    btnResetAll: $("#btnResetAll"),
+    btnClearStudents: $("#btnClearStudents"),
+    btnClearSeatsOnly: $("#btnClearSeatsOnly"),
+
+    formAddStudent: $("#formAddStudent"),
+    studentList: $("#studentList"),
+    studentSearch: $("#studentSearch"),
+    studentFilterGender: $("#studentFilterGender"),
+    btnShuffleStudents: $("#btnShuffleStudents"),
+
+    layoutMode: $("#layoutMode"),
+    layoutBlocks: $("#layoutBlocks"),
+    layoutRowsByBlock: $("#layoutRowsByBlock"),
+    btnApplyLayout: $("#btnApplyLayout"),
+    btnClearAssignments: $("#btnClearAssignments"),
+
+    pairType: $("#pairType"),
+    pairTypeField: $("#pairTypeField"),
+    pairAlignColumns: $("#pairAlignColumns"),
+    pairAlignField: $("#pairAlignField"),
+    btnRunRandom: $("#btnRunRandom"),
+    btnSaveHistory: $("#btnSaveHistory"),
+
+    btnExportJson: $("#btnExportJson"),
+    fileImportJson: $("#fileImportJson"),
+    autoSaveChip: $("#autoSaveChip"),
+
+    btnBulkAdd: $("#btnBulkAdd"),
+    bulkModal: $("#bulkModal"),
+    bulkTextarea: $("#bulkTextarea"),
+    btnBulkClose: $("#btnBulkClose"),
+    btnBulkCancel: $("#btnBulkCancel"),
+    btnBulkConfirm: $("#btnBulkConfirm"),
+
+    historyChip: $("#historyChip"),
+
+    btnHelp: $("#btnHelp"),
+    welcomeModal: $("#welcomeModal"),
+    btnWelcomeConfirm: $("#btnWelcomeConfirm"),
+
+    teacherClassroom: $("#teacherClassroom"),
+    studentClassroom: $("#studentClassroom"),
+    teacherRoomRoot: $("#teacherRoomRoot"),
+    seatCountChip: $("#seatCountChip"),
+    studentCountChip: $("#studentCountChip"),
+
+    btnStudentReveal: $("#btnStudentReveal"),
+    btnStudentShowFinal: $("#btnStudentShowFinal"),
+    btnStudentReset: $("#btnStudentReset"),
+    slotA: $("#slotA"),
+    slotB: $("#slotB"),
+    slotC: $("#slotC"),
+    revealProgress: $("#revealProgress"),
+    revealText: $("#revealText"),
+  };
+
+  // ---------------------------
+  // 라우팅(해시)
+  // ---------------------------
+
+  function setRoute(route) {
+    const isTeacher = route === "teacher";
+    el.viewTeacher.hidden = !isTeacher;
+    el.viewStudent.hidden = isTeacher;
+    el.tabTeacher.classList.toggle("isActive", isTeacher);
+    el.tabStudent.classList.toggle("isActive", !isTeacher);
+  }
+
+  function currentRoute() {
+    const hash = (location.hash || "").replace("#", "");
+    return hash === "student" ? "student" : "teacher";
+  }
+
+  window.addEventListener("hashchange", () => {
+    setRoute(currentRoute());
+  });
+
+  // ---------------------------
+  // 렌더링: 학생 목록
+  // ---------------------------
+
+  function renderStudentList() {
+    const q = el.studentSearch.value.trim();
+    const g = el.studentFilterGender.value;
+    const students = state.students
+      .filter((s) => (g === "all" ? true : s.gender === g))
+      .filter((s) => (q ? s.name.includes(q) : true));
+
+    el.studentList.innerHTML = "";
+
+    for (const st of students) {
+      const item = document.createElement("div");
+      item.className = "studentItem";
+      item.draggable = true;
+      item.dataset.studentId = st.id;
+      item.addEventListener("dragstart", onStudentDragStart);
+
+      const main = document.createElement("div");
+      main.className = "studentItem__main";
+
+      const badge = document.createElement("div");
+      badge.className = `badge ${st.gender === "male" ? "badge--male" : "badge--female"}`;
+      badge.textContent = st.gender === "male" ? "남" : "여";
+
+      const nameWrap = document.createElement("div");
+      nameWrap.style.display = "grid";
+      nameWrap.style.gap = "2px";
+
+      const name = document.createElement("div");
+      name.className = "studentItem__name";
+      name.textContent = st.name;
+
+      nameWrap.appendChild(name);
+
+      main.appendChild(badge);
+      main.appendChild(nameWrap);
+
+      const actions = document.createElement("div");
+      actions.className = "studentItem__actions";
+
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "btn";
+      btnEdit.type = "button";
+      btnEdit.textContent = "수정";
+      btnEdit.addEventListener("click", () => editStudent(st.id));
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "btn btn--danger";
+      btnDel.type = "button";
+      btnDel.textContent = "삭제";
+      btnDel.addEventListener("click", () => deleteStudent(st.id));
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnDel);
+
+      item.appendChild(main);
+      item.appendChild(actions);
+      el.studentList.appendChild(item);
+    }
+  }
+
+  function editStudent(studentId) {
+    const st = state.students.find((s) => s.id === studentId);
+    if (!st) return;
+    const name = prompt("학생 이름 수정", st.name);
+    if (name === null) return;
+    st.name = name.trim() || st.name;
+    saveState();
+    renderAll();
+    toast("학생 정보를 수정했습니다.");
+  }
+
+  function deleteStudent(studentId) {
+    const st = state.students.find((s) => s.id === studentId);
+    if (!st) return;
+    if (!confirm(`삭제할까요?\n- ${st.name}`)) return;
+
+    state.students = state.students.filter((s) => s.id !== studentId);
+
+    // 배정/고정에서 제거
+    for (const sid of Object.keys(state.assignments)) {
+      if (state.assignments[sid] === studentId) state.assignments[sid] = null;
+    }
+    for (const [sid, id] of Object.entries(state.fixed)) {
+      if (id === studentId) delete state.fixed[sid];
+    }
+
+    saveState();
+    renderAll();
+    toast("학생을 삭제했습니다.");
+  }
+
+  // ---------------------------
+  // 렌더링: 교실(좌석)
+  // ---------------------------
+
+  function renderClassroom(targetEl, options) {
+    const { isTeacher } = options;
+    const layout = state.layout;
+    const mode = layoutMode(layout);
+    const seatIds = allSeatIds(layout);
+
+    // 요약 chip
+    el.seatCountChip.textContent = `좌석: ${seatIds.length}`;
+    el.studentCountChip.textContent = `학생: ${state.students.length}`;
+
+    const blocksWrap = document.createElement("div");
+    blocksWrap.className = "blocks";
+
+    // 분단을 한 줄로 나열(모바일에서 줄바꿈)
+    // 혼자 앉기는 분단당 좌석이 1개뿐이라 짝 구조보다 훨씬 좁게 잡아서
+    // 분단 수가 많아져도(예: 6개) 한 화면 안에 다 들어오게 한다.
+    blocksWrap.classList.toggle("blocks--single", mode === "single");
+    blocksWrap.style.gridTemplateColumns =
+      mode === "single"
+        ? `repeat(${layout.blocks}, minmax(110px, 1fr))`
+        : `repeat(${layout.blocks}, minmax(240px, 1fr))`;
+    blocksWrap.style.alignItems = "start";
+
+    for (let b = 1; b <= layout.blocks; b++) {
+      const rowsInBlock = layout.rowsByBlock?.[b - 1] ?? 0;
+      const block = document.createElement("div");
+      block.className = "block";
+      block.dataset.block = String(b);
+
+      const title = document.createElement("div");
+      title.className = "block__title";
+      title.innerHTML = `<span>분단${b}</span>`;
+
+      const rows = document.createElement("div");
+      rows.className = "block__rows";
+
+      for (let r = 1; r <= rowsInBlock; r++) {
+        const rowPair = document.createElement("div");
+        rowPair.className =
+          mode === "single" ? "rowPair rowPair--single" : "rowPair";
+        rowPair.dataset.row = String(r);
+
+        if (mode === "single") {
+          const sid = seatIdOf(b, r, "C");
+          rowPair.appendChild(renderSeat(sid, { isTeacher }));
+        } else {
+          for (const side of ["L", "R"]) {
+            const sid = seatIdOf(b, r, side);
+            const seat = renderSeat(sid, { isTeacher });
+            rowPair.appendChild(seat);
+          }
+        }
+
+        rows.appendChild(rowPair);
+      }
+
+      block.appendChild(title);
+      block.appendChild(rows);
+      blocksWrap.appendChild(block);
+    }
+
+    targetEl.innerHTML = "";
+    targetEl.appendChild(blocksWrap);
+
+    if (isTeacher) {
+      // 교사용에서만 드롭 가능
+      targetEl.querySelectorAll(".seat").forEach((node) => {
+        node.addEventListener("dragover", onSeatDragOver);
+        node.addEventListener("dragleave", onSeatDragLeave);
+        node.addEventListener("drop", onSeatDrop);
+      });
+    }
+  }
+
+  function renderSeat(seatId, { isTeacher }) {
+    const seat = document.createElement("div");
+    seat.className = "seat";
+    seat.dataset.seatId = seatId;
+
+    const constraint = state.seats[seatId]?.genderConstraint || "any";
+    const fixedStudentId = state.fixed[seatId];
+    const isEmptyFixed = !!state.seats[seatId]?.emptyFixed;
+
+    const studentId = state.assignments[seatId];
+    const st = studentId ? state.students.find((x) => x.id === studentId) : null;
+
+    // 학생용: reveal 완료 전에는 항상 빈 자리로 표시
+    const showName = isTeacher || revealDone;
+
+    // 학생용 reveal 완료 후 성별 색상
+    if (!isTeacher && revealDone && st) {
+      seat.classList.add(st.gender === "female" ? "isFemale" : "isMale");
+    }
+
+    // ── 상단 메타(태그) ──────────────────────────
+    const meta = document.createElement("div");
+    meta.className = "seat__meta";
+
+    const tags = document.createElement("div");
+    tags.className = "seat__tags";
+
+    // 태그는 교사용에서만 표시
+    if (isTeacher) {
+      if (constraint === "male") {
+        const t = document.createElement("div");
+        t.className = "tag tag--maleOnly";
+        t.textContent = "남";
+        tags.appendChild(t);
+      } else if (constraint === "female") {
+        const t = document.createElement("div");
+        t.className = "tag tag--femaleOnly";
+        t.textContent = "여";
+        tags.appendChild(t);
+      }
+      if (fixedStudentId) {
+        const t = document.createElement("div");
+        t.className = "tag tag--fixed";
+        t.textContent = "고정";
+        tags.appendChild(t);
+      }
+      if (isEmptyFixed) {
+        const t = document.createElement("div");
+        t.className = "tag tag--emptyFixed";
+        t.textContent = "빈자리";
+        tags.appendChild(t);
+      }
+    }
+    meta.appendChild(tags);
+
+    // ── 이름 ─────────────────────────────────────
+    const name = document.createElement("div");
+    name.className = "seat__name";
+    if (showName && st) {
+      name.textContent = st.name;
+    } else {
+      name.textContent = "빈 자리";
+      name.classList.add("isEmpty");
+    }
+
+    seat.appendChild(meta);
+    seat.appendChild(name);
+
+    // ── 교사용 hover 오버레이 ─────────────────────
+    if (isTeacher) {
+      const overlay = document.createElement("div");
+      overlay.className = "seat__overlay";
+
+      // 윗줄: 제약 토글 / 고정 / 비우기
+      const row1 = document.createElement("div");
+      row1.className = "overlayRow";
+
+      const btnConstraint = document.createElement("button");
+      btnConstraint.type = "button";
+      btnConstraint.className = "seatBtn" + (constraint !== "any" ? " isWarn" : "");
+      btnConstraint.textContent =
+        constraint === "any" ? "제한 없음" : constraint === "male" ? "남" : "여";
+      btnConstraint.addEventListener("click", (e) => { e.stopPropagation(); cycleSeatConstraint(seatId); });
+
+      const btnFix = document.createElement("button");
+      btnFix.type = "button";
+      btnFix.className = "seatBtn" + (fixedStudentId ? " isOn" : "");
+      btnFix.textContent = fixedStudentId ? "고정 해제" : "고정";
+      btnFix.addEventListener("click", (e) => { e.stopPropagation(); toggleFixedSeat(seatId); });
+
+      const btnClear = document.createElement("button");
+      btnClear.type = "button";
+      btnClear.className = "seatBtn isDanger";
+      btnClear.textContent = "비우기";
+      btnClear.addEventListener("click", (e) => { e.stopPropagation(); clearSeat(seatId); });
+
+      row1.appendChild(btnConstraint);
+      row1.appendChild(btnFix);
+      row1.appendChild(btnClear);
+
+      // 아랫줄: 빈자리 고정
+      const row2 = document.createElement("div");
+      row2.className = "overlayRow";
+
+      const btnEmptyFixed = document.createElement("button");
+      btnEmptyFixed.type = "button";
+      btnEmptyFixed.className = "seatBtn isPurple" + (isEmptyFixed ? " isOn" : "");
+      btnEmptyFixed.textContent = isEmptyFixed ? "빈자리 해제" : "빈자리 고정";
+      btnEmptyFixed.addEventListener("click", (e) => { e.stopPropagation(); toggleEmptyFixed(seatId); });
+
+      row2.appendChild(btnEmptyFixed);
+
+      overlay.appendChild(row1);
+      overlay.appendChild(row2);
+      seat.appendChild(overlay);
+
+      // 드래그 (학생이 배정된 경우)
+      if (st) {
+        seat.draggable = true;
+        seat.addEventListener("dragstart", onSeatDragStart);
+        seat.dataset.studentId = st.id;
+      }
+    }
+
+    return seat;
+  }
+
+  function cycleSeatConstraint(seatId) {
+    const cur = state.seats[seatId]?.genderConstraint || "any";
+    const next = cur === "any" ? "male" : cur === "male" ? "female" : "any";
+    state.seats[seatId].genderConstraint = next;
+    saveState();
+    renderAll();
+  }
+
+  function toggleFixedSeat(seatId) {
+    const current = state.fixed[seatId];
+    const studentId = state.assignments[seatId];
+    if (current) {
+      delete state.fixed[seatId];
+      toast("고정을 해제했습니다.");
+    } else {
+      if (!studentId) {
+        toast("빈 자리는 고정할 수 없습니다. 먼저 학생을 배정하세요.", "warn");
+        return;
+      }
+      state.fixed[seatId] = studentId;
+      toast("좌석을 고정했습니다.");
+    }
+    saveState();
+    renderAll();
+  }
+
+  function clearSeat(seatId) {
+    // 고정 좌석이면 먼저 해제 유도
+    if (state.fixed[seatId]) {
+      toast("고정된 좌석입니다. 먼저 고정을 해제하세요.", "warn");
+      return;
+    }
+    state.assignments[seatId] = null;
+    saveState();
+    renderAll();
+  }
+
+  function toggleEmptyFixed(seatId) {
+    // 빈자리 고정: 랜덤 배치 시 이 자리에 학생을 배정하지 않음
+    // 학생이 배정되어 있거나 고정 좌석이면 먼저 해제 유도
+    if (state.fixed[seatId]) {
+      toast("학생 고정 좌석입니다. 먼저 고정을 해제하세요.", "warn");
+      return;
+    }
+    if (state.assignments[seatId]) {
+      toast("배정된 학생이 있습니다. 먼저 비우기를 해주세요.", "warn");
+      return;
+    }
+    const cur = !!state.seats[seatId]?.emptyFixed;
+    state.seats[seatId].emptyFixed = !cur;
+    saveState();
+    renderAll();
+    toast(cur ? "빈자리 고정을 해제했습니다." : "빈자리 고정을 설정했습니다.");
+  }
+
+  // ---------------------------
+  // 드래그 앤 드롭
+  // ---------------------------
+
+  let dragPayload = null;
+
+  function onStudentDragStart(e) {
+    const studentId = e.currentTarget.dataset.studentId;
+    dragPayload = { type: "student", studentId };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `student:${studentId}`);
+  }
+
+  function onSeatDragStart(e) {
+    const seatId = e.currentTarget.dataset.seatId;
+    const studentId = e.currentTarget.dataset.studentId;
+    dragPayload = { type: "seat", seatId, studentId };
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `seat:${seatId}:${studentId}`);
+  }
+
+  function onSeatDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    e.currentTarget.classList.add("isDragOver");
+  }
+
+  function onSeatDragLeave(e) {
+    e.currentTarget.classList.remove("isDragOver");
+  }
+
+  function onSeatDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove("isDragOver");
+
+    const targetSeatId = e.currentTarget.dataset.seatId;
+    const payload = dragPayload;
+    dragPayload = null;
+    if (!payload) return;
+
+    // 고정 좌석으로는 임의 변경 제한(교사가 고정 해제 후 변경)
+    if (state.fixed[targetSeatId]) {
+      toast("고정된 좌석입니다. 고정 해제 후 이동하세요.", "warn");
+      return;
+    }
+
+    if (payload.type === "student") {
+      assignStudentToSeat(payload.studentId, targetSeatId);
+    } else if (payload.type === "seat") {
+      swapSeats(payload.seatId, targetSeatId);
+    }
+  }
+
+  function assignStudentToSeat(studentId, seatId) {
+    const st = state.students.find((s) => s.id === studentId);
+    if (!st) return;
+    if (!canSit(st, seatId)) {
+      toast("성별 제한 때문에 배정할 수 없습니다.", "warn");
+      return;
+    }
+
+    // 다른 좌석에 이미 앉아있다면 이동
+    for (const sid of Object.keys(state.assignments)) {
+      if (state.assignments[sid] === studentId) {
+        if (state.fixed[sid]) {
+          toast(
+            "학생이 고정 좌석에 있습니다. 고정 해제 후 이동하세요.",
+            "warn",
+          );
+          return;
+        }
+        state.assignments[sid] = null;
+      }
+    }
+
+    state.assignments[seatId] = studentId;
+    saveState();
+    renderAll();
+  }
+
+  function swapSeats(seatA, seatB) {
+    if (seatA === seatB) return;
+    if (state.fixed[seatA] || state.fixed[seatB]) {
+      toast(
+        "고정 좌석은 자리 바꾸기가 제한됩니다. 고정 해제 후 진행하세요.",
+        "warn",
+      );
+      return;
+    }
+
+    const aId = state.assignments[seatA];
+    const bId = state.assignments[seatB];
+
+    // 성별 제한 검사(서로 바꿨을 때도 만족해야 함)
+    const aSt = aId ? state.students.find((s) => s.id === aId) : null;
+    const bSt = bId ? state.students.find((s) => s.id === bId) : null;
+
+    if (aSt && !canSit(aSt, seatB)) {
+      toast("성별 제한 때문에 자리 바꾸기가 불가합니다.", "warn");
+      return;
+    }
+    if (bSt && !canSit(bSt, seatA)) {
+      toast("성별 제한 때문에 자리 바꾸기가 불가합니다.", "warn");
+      return;
+    }
+
+    state.assignments[seatA] = bId || null;
+    state.assignments[seatB] = aId || null;
+    saveState();
+    renderAll();
+  }
+
+  function canSit(student, seatId) {
+    const c = state.seats[seatId]?.genderConstraint || "any";
+    if (c === "any") return true;
+    return student.gender === c;
+  }
+
+  // ---------------------------
+  // 랜덤 배치
+  // ---------------------------
+
+  function studentById(id) {
+    return state.students.find((s) => s.id === id) || null;
+  }
+
+  function runRandomAssignment() {
+    const layout = state.layout;
+    const mode = layoutMode(layout);
+    const seatIds = allSeatIds(layout);
+
+    if (state.students.length === 0) {
+      toast("학생이 없습니다. 먼저 학생을 추가하세요.", "warn");
+      return;
+    }
+
+    // ── 고정 좌석 정리 ─────────────────────────────
+    // (같은 학생이 여러 좌석에 고정된 경우 첫 좌석만 인정)
+    const fixedMap = {};
+    const fixedStudentIds = new Set();
+    for (const sid of seatIds) {
+      const stId = state.fixed[sid];
+      if (typeof stId !== "string" || !stId) continue;
+      if (fixedStudentIds.has(stId)) continue;
+      const st = studentById(stId);
+      if (!st) continue;
+      if (!canSit(st, sid)) {
+        toast(
+          "고정 좌석이 성별 제한과 충돌합니다. 설정을 확인하세요.",
+          "err",
+          3400,
+        );
+        return;
+      }
+      fixedMap[sid] = stId;
+      fixedStudentIds.add(stId);
+    }
+
+    // ── 직전 기록에서 짝/뒷자리 정보 추출 ───────────
+    const last = state.history[state.history.length - 1];
+    const lastAssignments = last?.assignments || {};
+    const prevPairs =
+      Array.isArray(last?.pairs) && last.pairs.length
+        ? last.pairs
+        : pairsFromAssignments(lastAssignments);
+    const prevPartners = new Set();
+    for (const p of prevPairs) {
+      if (Array.isArray(p) && typeof p[0] === "string" && typeof p[1] === "string") {
+        prevPartners.add(pairKey(p[0], p[1]));
+      }
+    }
+    const backRowIds = computeBackRowStudentIds(lastAssignments);
+
+    const ctx = {
+      layout,
+      mode,
+      seatIds,
+      fixedMap,
+      prevPartners,
+      backRowIds,
+      pairType: normalizePairType(state.settings.pairType),
+      // 남녀 줄 정렬: 짝 구조에서는 남녀짝일 때만, 혼자 앉기에서는 항상 의미가 있음
+      // (혼자 앉기는 줄마다 좌석이 1개뿐이라 "세로줄" = "분단" 전체)
+      columnAlign:
+        !!state.settings.columnAlign &&
+        (mode === "single" ||
+          normalizePairType(state.settings.pairType) === "mf"),
+      freeStudents: state.students.filter((s) => !fixedStudentIds.has(s.id)),
+      isOpenSeat: (sid) => !fixedMap[sid] && !state.seats[sid]?.emptyFixed,
+    };
+
+    let best = null;
+    for (let attempt = 0; attempt < INTERNAL_ATTEMPTS; attempt++) {
+      const assignments =
+        mode === "single" ? attemptSingleMode(ctx) : attemptPairMode(ctx);
+      if (!assignments) continue;
+      const score = scoreAssignments(assignments, ctx);
+      if (!best || score.total < best.score.total) {
+        best = { assignments, score };
+        if (score.total === 0) break; // 완벽한 결과면 조기 종료
+      }
+    }
+
+    if (!best) {
+      toast(
+        "자리 배치에 실패했습니다. 고정 좌석·성별 제한 설정을 확인하세요.",
+        "err",
+        3400,
+      );
+      return;
+    }
+
+    state.assignments = best.assignments;
+    saveState();
+    renderAll();
+
+    const notes = [];
+    if (best.score.unseated > 0) {
+      notes.push(`자리가 부족해 ${best.score.unseated}명 미배치`);
+    }
+    if (best.score.columnMix > 0) {
+      notes.push(`인원이 맞지 않아 줄 정렬 ${best.score.columnMix}명 예외`);
+    }
+    if (mode !== "single" && best.score.repeatPartners > 0) {
+      notes.push(`이전 짝 ${best.score.repeatPartners}쌍 불가피하게 유지`);
+    }
+    toast(
+      notes.length ? `랜덤 배치 완료 (${notes.join(", ")})` : "랜덤 배치 완료",
+      notes.length ? "warn" : "ok",
+      notes.length ? 3400 : 2400,
+    );
+
+    // 기록 확인 팝업
+    setTimeout(() => {
+      if (
+        confirm(
+          "랜덤 배치가 완료됐습니다.\n이번 결과를 기록할까요?\n\n(기록해야 다음 배치에서 뒷자리 앞으로 이동, 같은 짝 피하기가 적용됩니다)",
+        )
+      ) {
+        saveHistorySnapshot();
+      }
+    }, 100);
+  }
+
+  function attemptPairMode(ctx) {
+    /*
+    짝 구조 배치 한 번 시도:
+    1) 고정 학생 옆 등 "한 자리만 빈 줄"을 먼저 채움
+    2) 남은 학생을 짝 유형에 맞춰 둘씩 묶음(이전 짝 회피)
+    3) 짝을 줄에 배치 — 뒷자리였던 학생이 낀 짝을 앞줄에 우선
+    4) 그래도 남은 학생은 빈 좌석에 개별 배치
+  */
+    const {
+      layout,
+      seatIds,
+      fixedMap,
+      freeStudents,
+      isOpenSeat,
+      prevPartners,
+      backRowIds,
+      pairType,
+    } = ctx;
+
+    const assignments = {};
+    for (const sid of seatIds) assignments[sid] = null;
+    for (const [sid, stId] of Object.entries(fixedMap)) assignments[sid] = stId;
+
+    // 줄 단위 슬롯 구성
+    const pairSlots = []; // 양쪽 다 빈 줄
+    const singleSlots = []; // 한쪽만 빈 줄
+    for (let b = 1; b <= layout.blocks; b++) {
+      const rows = layout.rowsByBlock?.[b - 1] ?? 0;
+      for (let r = 1; r <= rows; r++) {
+        const L = seatIdOf(b, r, "L");
+        const R = seatIdOf(b, r, "R");
+        const lo = isOpenSeat(L);
+        const ro = isOpenSeat(R);
+        if (lo && ro) pairSlots.push({ block: b, row: r, seats: [L, R] });
+        else if (lo) singleSlots.push({ row: r, seat: L, neighbor: fixedMap[R] || null });
+        else if (ro) singleSlots.push({ row: r, seat: R, neighbor: fixedMap[L] || null });
+      }
+    }
+
+    let pool = freeStudents.slice();
+
+    // 1) 한쪽만 빈 줄 채우기
+    for (const slot of shuffleInPlace(singleSlots.slice())) {
+      if (pool.length === 0) break;
+      const eligible = pool.filter((s) => canSit(s, slot.seat));
+      if (eligible.length === 0) continue; // 이 자리는 비워둠
+      const costs = eligible.map((s) => {
+        let c = 0;
+        // 옆에 고정 학생이 있고 그 학생과 직전에 짝이었다면 회피
+        if (slot.neighbor && prevPartners.has(pairKey(s.id, slot.neighbor))) c += 10;
+        // 뒷자리였던 학생은 앞줄로
+        const isBack = backRowIds.has(s.id);
+        c += slot.row <= FRONT_ROW_LIMIT ? (isBack ? 0 : 1) : isBack ? 1 : 0;
+        return c;
+      });
+      const min = Math.min(...costs);
+      const tier = eligible.filter((_, i) => costs[i] === min);
+      const chosen = tier[Math.floor(Math.random() * tier.length)];
+      assignments[slot.seat] = chosen.id;
+      pool = pool.filter((s) => s.id !== chosen.id);
+    }
+
+    // 1-A) 남녀 줄 정렬: 분단 단위로 세로줄 성별을 맞춰 배치하는 별도 경로
+    if (ctx.columnAlign) {
+      pool = placeColumnAligned(assignments, pool, pairSlots, ctx);
+      placeStragglers(assignments, pool, ctx);
+      return assignments;
+    }
+
+    // 2) 짝 구성
+    const { pairs, leftover } = buildPairs(pool, pairType, prevPartners);
+    const remaining = pairs.slice();
+    const backScore = (p) =>
+      (backRowIds.has(p[0].id) ? 1 : 0) + (backRowIds.has(p[1].id) ? 1 : 0);
+
+    // 3) 짝을 줄에 배치
+    // 앞줄 슬롯 중 "뒷자리 학생이 낀 짝"이 들어갈 만큼만 먼저 확보하고,
+    // 나머지 슬롯은 무작위 순서로 — 빈자리가 앞줄에만 몰리지 않게 함
+    const frontPool = shuffleInPlace(
+      pairSlots.filter((s) => s.row <= FRONT_ROW_LIMIT),
+    );
+    const backPool = pairSlots.filter((s) => s.row > FRONT_ROW_LIMIT);
+    const needFront = Math.min(
+      remaining.filter((p) => backScore(p) > 0).length,
+      frontPool.length,
+    );
+    const reservedFront = frontPool.slice(0, needFront);
+    const orderedSlots = [
+      ...reservedFront,
+      ...shuffleInPlace([...frontPool.slice(needFront), ...backPool]),
+    ];
+
+    for (const slot of orderedSlots) {
+      if (remaining.length === 0) break;
+      const [L, R] = slot.seats;
+
+      // 성별 제한을 만족하는 짝만 후보
+      const fits = [];
+      for (let i = 0; i < remaining.length; i++) {
+        const [a, b] = remaining[i];
+        if ((canSit(a, L) && canSit(b, R)) || (canSit(a, R) && canSit(b, L))) {
+          fits.push(i);
+        }
+      }
+      if (fits.length === 0) continue; // 이 줄은 비워두고 다음 줄로
+
+      // 앞줄이면 뒷자리 학생이 많이 낀 짝, 뒷줄이면 적게 낀 짝
+      const scores = fits.map((i) => backScore(remaining[i]));
+      const target =
+        slot.row <= FRONT_ROW_LIMIT ? Math.max(...scores) : Math.min(...scores);
+      const tier = fits.filter((_, k) => scores[k] === target);
+      const idx = tier[Math.floor(Math.random() * tier.length)];
+      const [a, b] = remaining.splice(idx, 1)[0];
+
+      // 좌우 배치 방향 결정(가능한 방향 중 무작위)
+      const orientations = [];
+      if (canSit(a, L) && canSit(b, R)) orientations.push([a, b]);
+      if (canSit(a, R) && canSit(b, L)) orientations.push([b, a]);
+      const [left, right] =
+        orientations[Math.floor(Math.random() * orientations.length)];
+      assignments[L] = left.id;
+      assignments[R] = right.id;
+    }
+
+    // 4) 짝을 못 이뤘거나 자리를 못 받은 학생 개별 배치
+    const stragglers = [];
+    for (const p of remaining) stragglers.push(p[0], p[1]);
+    stragglers.push(...leftover);
+    placeStragglers(assignments, stragglers, ctx);
+
+    return assignments;
+  }
+
+  function placeStragglers(assignments, stragglers, ctx) {
+    /*
+    짝을 못 이뤘거나 자리를 못 받은 학생을 남은 빈 좌석에 개별로 앉힙니다.
+    가능하면 직전 짝이 옆자리가 되는 좌석은 피합니다.
+  */
+    if (!stragglers || stragglers.length === 0) return;
+    const { seatIds, isOpenSeat, prevPartners } = ctx;
+
+    const openLeft = shuffleInPlace(
+      seatIds.filter((sid) => !assignments[sid] && isOpenSeat(sid)),
+    );
+    // 그 좌석에 앉으면 옆자리가 될 학생
+    const neighborOf = (sid) => {
+      const p = parseSeatId(sid);
+      if (!p || p.side === "C") return null;
+      return (
+        assignments[seatIdOf(p.block, p.row, p.side === "L" ? "R" : "L")] || null
+      );
+    };
+
+    for (const st of shuffleInPlace(stragglers.slice())) {
+      let pick = -1;
+      let fallback = -1;
+      for (let i = 0; i < openLeft.length; i++) {
+        if (!canSit(st, openLeft[i])) continue;
+        if (fallback < 0) fallback = i;
+        const nb = neighborOf(openLeft[i]);
+        if (nb && prevPartners.has(pairKey(st.id, nb))) continue; // 직전 짝 옆자리는 회피
+        pick = i;
+        break;
+      }
+      if (pick < 0) pick = fallback;
+      if (pick < 0) continue; // 앉힐 자리 없음(점수에서 감점)
+      assignments[openLeft.splice(pick, 1)[0]] = st.id;
+    }
+  }
+
+  function placeColumnAligned(assignments, pool, pairSlots, ctx) {
+    /*
+    남녀 줄 정렬 배치:
+    한 분단 안에서 세로줄이 성별로 섞이지 않도록, 분단을 통째로 한 가지 구성으로 채웁니다.
+      - 남녀 분단: 왼쪽 줄 전부 남 / 오른쪽 줄 전부 여 — 이 좌우 방향은 모든 분단에서 동일하게 고정
+      - 남남 분단 / 여여 분단: 인원이 안 맞아 남는 성별을 분단 단위로 몰아 채움
+    이렇게 하면 어느 세로줄을 봐도 성별이 섞이지 않고, 분단 간에도 같은 쪽이 같은 성별입니다.
+    반환값: 아직 자리를 못 받은 학생 배열
+  */
+    const { prevPartners, backRowIds } = ctx;
+
+    // 분단별로 사용 가능한 줄을 모음
+    const byBlock = new Map();
+    for (const slot of pairSlots) {
+      if (!byBlock.has(slot.block)) byBlock.set(slot.block, []);
+      byBlock.get(slot.block).push(slot);
+    }
+
+    const males = shuffleInPlace(pool.filter((s) => s.gender === "male"));
+    const females = shuffleInPlace(pool.filter((s) => s.gender !== "male"));
+
+    // 좌석의 성별 제한이 특정 성별을 허용하는지
+    const seatAllows = (sid, gender) => {
+      const c = state.seats[sid]?.genderConstraint || "any";
+      return c === "any" || c === gender;
+    };
+
+    // 해당 좌석에 앉힐 학생 고르기(제한 준수 + 앞줄/직전짝 선호 반영)
+    const take = (from, seatId, preferBack, avoidId) => {
+      const eligible = from.filter((s) => canSit(s, seatId));
+      if (eligible.length === 0) return null;
+      const costs = eligible.map((s) => {
+        let c = 0;
+        if (avoidId && prevPartners.has(pairKey(s.id, avoidId))) c += 10;
+        const isBack = backRowIds.has(s.id);
+        c += preferBack ? (isBack ? 0 : 1) : isBack ? 1 : 0;
+        return c;
+      });
+      const min = Math.min(...costs);
+      const tier = eligible.filter((_, i) => costs[i] === min);
+      const chosen = tier[Math.floor(Math.random() * tier.length)];
+      from.splice(
+        from.findIndex((s) => s.id === chosen.id),
+        1,
+      );
+      return chosen;
+    };
+
+    // 좌우 방향은 모든 분단에서 동일해야 하므로, 분단별로 정하지 않고
+    // 전체 좌석을 기준으로 딱 한 번만 결정합니다(성별 제한을 더 잘 만족하는 쪽 우선).
+    const globalScore = (maleSide) => {
+      let bad = 0;
+      for (const slot of pairSlots) {
+        const [L, R] = slot.seats;
+        const mSeat = maleSide === "L" ? L : R;
+        const fSeat = maleSide === "L" ? R : L;
+        if (!seatAllows(mSeat, "male")) bad++;
+        if (!seatAllows(fSeat, "female")) bad++;
+      }
+      return bad;
+    };
+    const sideOptions = shuffleInPlace(["L", "R"]);
+    sideOptions.sort((a, b) => globalScore(a) - globalScore(b));
+    const maleSide = sideOptions[0];
+
+    // 분단은 무작위 순서로, 분단 안의 줄은 앞줄부터
+    const blocks = shuffleInPlace([...byBlock.values()]);
+    for (const rows of blocks) {
+      rows.sort((a, b) => a.row - b.row);
+      const n = rows.length;
+
+      // 남은 인원을 보고 이 분단의 구성을 결정
+      let kind;
+      if (Math.min(males.length, females.length) >= n) kind = "mf";
+      else if (males.length >= 2 * n) kind = "mm";
+      else if (females.length >= 2 * n) kind = "ff";
+      else kind = "partial";
+
+      if (kind === "mf" || kind === "partial") {
+        for (const slot of rows) {
+          const [L, R] = slot.seats;
+          const mSeat = maleSide === "L" ? L : R;
+          const fSeat = maleSide === "L" ? R : L;
+          const preferBack = slot.row <= FRONT_ROW_LIMIT;
+          if (males.length === 0 || females.length === 0) break;
+          const m = take(males, mSeat, preferBack, null);
+          if (!m) break;
+          const f = take(females, fSeat, preferBack, m.id);
+          if (!f) {
+            males.push(m);
+            break;
+          }
+          assignments[mSeat] = m.id;
+          assignments[fSeat] = f.id;
+        }
+      } else {
+        // 한 성별로만 채우는 분단
+        const from = kind === "mm" ? males : females;
+        for (const slot of rows) {
+          const [L, R] = slot.seats;
+          const preferBack = slot.row <= FRONT_ROW_LIMIT;
+          if (from.length < 2) break;
+          const a = take(from, L, preferBack, null);
+          if (!a) break;
+          const b = take(from, R, preferBack, a.id);
+          if (!b) {
+            from.push(a);
+            break;
+          }
+          assignments[L] = a.id;
+          assignments[R] = b.id;
+        }
+      }
+    }
+
+    return [...males, ...females];
+  }
+
+  function placeColumnAlignedSingle(assignments, pool, ctx) {
+    /*
+    혼자 앉기의 남녀 줄 정렬: 짝 구조의 "세로줄 하나 = 한 성별"과 같은 개념을
+    혼자 앉기에 맞게 적용합니다. 혼자 앉기는 줄마다 좌석이 1개뿐이라
+    세로줄이 곧 분단 전체이므로, 분단을 통째로 한 성별로만 채웁니다.
+    분단마다 그 시점에 더 많이 남은 성별을 배정해 인원을 자연스럽게 맞춥니다.
+    반환값: 아직 자리를 못 받은 학생 배열.
+  */
+    const { layout, isOpenSeat, backRowIds } = ctx;
+
+    const byBlock = new Map();
+    for (let b = 1; b <= layout.blocks; b++) {
+      const rows = layout.rowsByBlock?.[b - 1] ?? 0;
+      const seats = [];
+      for (let r = 1; r <= rows; r++) {
+        const sid = seatIdOf(b, r, "C");
+        if (isOpenSeat(sid)) seats.push({ row: r, seat: sid });
+      }
+      if (seats.length) byBlock.set(b, seats);
+    }
+
+    const males = shuffleInPlace(pool.filter((s) => s.gender === "male"));
+    const females = shuffleInPlace(pool.filter((s) => s.gender !== "male"));
+
+    const take = (from, seatId, preferBack) => {
+      const eligible = from.filter((s) => canSit(s, seatId));
+      if (eligible.length === 0) return null;
+      const costs = eligible.map((s) => {
+        const isBack = backRowIds.has(s.id);
+        return preferBack ? (isBack ? 0 : 1) : isBack ? 1 : 0;
+      });
+      const min = Math.min(...costs);
+      const tier = eligible.filter((_, i) => costs[i] === min);
+      const chosen = tier[Math.floor(Math.random() * tier.length)];
+      from.splice(
+        from.findIndex((s) => s.id === chosen.id),
+        1,
+      );
+      return chosen;
+    };
+
+    const blocks = shuffleInPlace([...byBlock.values()]);
+    for (const seats of blocks) {
+      seats.sort((a, b) => a.row - b.row);
+      const from = males.length >= females.length ? males : females;
+      for (const { row, seat } of seats) {
+        if (from.length === 0) break;
+        const preferBack = row <= FRONT_ROW_LIMIT;
+        const chosen = take(from, seat, preferBack);
+        if (!chosen) break;
+        assignments[seat] = chosen.id;
+      }
+    }
+
+    return [...males, ...females];
+  }
+
+  function attemptSingleMode(ctx) {
+    /*
+    혼자 앉기 배치 한 번 시도: 짝 개념이 없으므로 "뒷자리 학생 앞으로"만 적용.
+    남녀 줄 정렬이 켜져 있으면 분단 단위 성별 배정을 먼저 하고 나머지를 채운다.
+  */
+    const { seatIds, fixedMap, freeStudents, isOpenSeat, backRowIds } = ctx;
+
+    const assignments = {};
+    for (const sid of seatIds) assignments[sid] = null;
+    for (const [sid, stId] of Object.entries(fixedMap)) assignments[sid] = stId;
+
+    if (ctx.columnAlign) {
+      const leftover = placeColumnAlignedSingle(
+        assignments,
+        freeStudents.slice(),
+        ctx,
+      );
+      placeStragglers(assignments, leftover, ctx);
+      return assignments;
+    }
+
+    const openSeats = seatIds.filter(isOpenSeat);
+    const rowOf = (sid) => parseSeatId(sid)?.row ?? Number.MAX_SAFE_INTEGER;
+    const frontSeats = shuffleInPlace(
+      openSeats.filter((sid) => rowOf(sid) <= FRONT_ROW_LIMIT),
+    );
+    const otherSeats = openSeats.filter((sid) => rowOf(sid) > FRONT_ROW_LIMIT);
+
+    const backStudents = shuffleInPlace(
+      freeStudents.filter((s) => backRowIds.has(s.id)),
+    );
+    const restStudents = freeStudents.filter((s) => !backRowIds.has(s.id));
+
+    // 뒷자리였던 학생 → 앞줄 우선
+    for (const st of backStudents) {
+      const i = frontSeats.findIndex((sid) => canSit(st, sid));
+      if (i >= 0) assignments[frontSeats.splice(i, 1)[0]] = st.id;
+      else restStudents.push(st); // 앞줄이 부족하면 일반 배치로
+    }
+
+    // 나머지 학생 → 남은 좌석 무작위
+    const leftSeats = shuffleInPlace([...frontSeats, ...otherSeats]);
+    for (const st of shuffleInPlace(restStudents)) {
+      const i = leftSeats.findIndex((sid) => canSit(st, sid));
+      if (i < 0) continue;
+      assignments[leftSeats.splice(i, 1)[0]] = st.id;
+    }
+
+    return assignments;
+  }
+
+  function scoreAssignments(assignments, ctx) {
+    // 낮을수록 좋은 결과. 최종 배치 결과만 보고 평가하므로 계산이 어긋날 여지가 없음.
+    const { mode, prevPartners, backRowIds, pairType, freeStudents } = ctx;
+
+    const seated = new Set(Object.values(assignments).filter(Boolean));
+    let unseated = 0;
+    for (const s of freeStudents) if (!seated.has(s.id)) unseated++;
+
+    let repeatPartners = 0;
+    let typeMismatch = 0;
+    if (mode !== "single") {
+      for (const [aId, bId] of pairsFromAssignments(assignments)) {
+        if (prevPartners.has(pairKey(aId, bId))) repeatPartners++;
+        const a = studentById(aId);
+        const b = studentById(bId);
+        if (a && b && !pairMatchesType(a, b, pairType)) typeMismatch++;
+      }
+    }
+
+    let backRowNotFront = 0;
+    for (const [sid, stId] of Object.entries(assignments)) {
+      if (!stId || !backRowIds.has(stId)) continue;
+      const p = parseSeatId(sid);
+      if (p && p.row > FRONT_ROW_LIMIT) backRowNotFront++;
+    }
+
+    const columnMix = ctx.columnAlign ? countColumnMix(assignments) : 0;
+
+    const total =
+      unseated * 100000 +
+      columnMix * 2000 +
+      repeatPartners * 500 +
+      typeMismatch * 50 +
+      backRowNotFront;
+    return {
+      total,
+      unseated,
+      columnMix,
+      repeatPartners,
+      typeMismatch,
+      backRowNotFront,
+    };
+  }
+
+  function countColumnMix(assignments) {
+    /*
+    세로줄(짝 구조는 분단×왼쪽/오른쪽, 혼자 앉기는 분단 전체) 안에서
+    다수 성별과 다른 학생 수를 셉니다.
+    0이면 어느 세로줄을 봐도 성별이 섞이지 않은 상태입니다.
+  */
+    const cols = new Map(); // "B{b}-L"/"B{b}-C" -> { male, female }
+    for (const [sid, stId] of Object.entries(assignments)) {
+      if (!stId) continue;
+      const p = parseSeatId(sid);
+      if (!p) continue;
+      const st = studentById(stId);
+      if (!st) continue;
+      const key = `B${p.block}-${p.side}`;
+      if (!cols.has(key)) cols.set(key, { male: 0, female: 0 });
+      cols.get(key)[st.gender === "male" ? "male" : "female"]++;
+    }
+    let mixed = 0;
+    for (const c of cols.values()) mixed += Math.min(c.male, c.female);
+    return mixed;
+  }
+
+  function saveHistorySnapshot() {
+    const snapshot = {
+      at: Date.now(),
+      assignments: deepClone(state.assignments),
+      pairs: pairsFromAssignments(state.assignments),
+    };
+    state.history.push(snapshot);
+    state.history = state.history.slice(-30);
+    saveState();
+    updateHistoryChip();
+    toast("이번 배치를 기록했습니다.");
+  }
+
+  function updateHistoryChip() {
+    const chip = document.getElementById("historyChip");
+    if (!chip) return;
+    const last = state.history[state.history.length - 1];
+    if (!last) {
+      chip.textContent = "기록 없음";
+      chip.classList.remove("hasHistory");
+      return;
+    }
+    const d = new Date(last.at);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    chip.textContent = `마지막 기록: ${mm}/${dd} ${hh}:${mi} (총 ${state.history.length}개)`;
+    chip.classList.add("hasHistory");
+  }
+
+
+  // ---------------------------
+  // JSON Import/Export
+  // ---------------------------
+
+  function exportJson() {
+    const payload = deepClone(state);
+    const now = new Date();
+    const yy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    const filename = `자리바꾸기_${yy}년${mm}월${dd}일_${hh}시${mi}분.json`;
+    downloadJson(filename, payload);
+    toast("JSON 파일로 저장했습니다.");
+  }
+
+  async function importJsonFromFile(file) {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    state = migrateAndNormalizeState(parsed);
+    saveState();
+    renderAll();
+    toast("JSON을 불러왔습니다.");
+  }
+
+  // ---------------------------
+  // 학생용 연출 + 최종 표시
+  // ---------------------------
+
+  let revealTimer = null;
+  let revealStartAt = 0;
+
+  function stopReveal() {
+    if (revealTimer) clearInterval(revealTimer);
+    revealTimer = null;
+    revealStartAt = 0;
+    el.revealProgress.style.width = "0%";
+  }
+
+  function startRevealAnimation() {
+    const students = state.students.slice();
+    if (students.length === 0) {
+      toast("학생이 없습니다.", "warn");
+      return;
+    }
+    // 배정 데이터가 없으면 경고
+    const assigned = Object.values(state.assignments).filter(Boolean);
+    if (assigned.length === 0) {
+      toast("배치된 학생이 없습니다. 먼저 랜덤 배치를 실행하세요.", "warn");
+      return;
+    }
+
+    stopReveal();
+    revealDone = false;
+
+    // 학생용 화면을 먼저 빈 자리로 렌더링
+    renderClassroom(el.studentClassroom, { isTeacher: false });
+
+    // 배정된 좌석 목록을 랜덤 순서로 섞어서 하나씩 공개
+    const seatIds = allSeatIds(state.layout);
+    const assignedSeats = seatIds.filter((sid) => state.assignments[sid]);
+    shuffleInPlace(assignedSeats);
+
+    const totalSeats = assignedSeats.length;
+    const intervalPerSeat = Math.max(60, Math.floor(REVEAL_DURATION_MS / totalSeats));
+    let revealed = 0;
+
+    el.revealText.textContent = "자리를 공개하는 중...";
+    el.revealProgress.style.width = "0%";
+
+    // 슬롯 텍스트: 아직 공개 안 된 이름들을 빠르게 순환
+    const names = students.map((s) => s.name);
+    let slotTick = 0;
+    revealTimer = setInterval(() => {
+      slotTick++;
+
+      // 슬롯 텍스트 빠르게 순환 (박진감)
+      el.slotA.textContent = names[Math.floor(Math.random() * names.length)];
+      el.slotB.textContent = names[Math.floor(Math.random() * names.length)];
+      el.slotC.textContent = names[Math.floor(Math.random() * names.length)];
+
+      // intervalPerSeat마다 좌석 하나 공개
+      if (slotTick % Math.max(1, Math.floor(intervalPerSeat / REVEAL_TICK_MS)) === 0) {
+        if (revealed < totalSeats) {
+          const sid = assignedSeats[revealed];
+          revealed++;
+
+          // 해당 좌석 카드만 업데이트
+          const seatEl = el.studentClassroom.querySelector(`[data-seat-id="${sid}"]`);
+          if (seatEl) {
+            const studentId = state.assignments[sid];
+            const st = studentId ? state.students.find((x) => x.id === studentId) : null;
+            if (st) {
+              const nameEl = seatEl.querySelector(".seat__name");
+              if (nameEl) {
+                nameEl.textContent = st.name;
+                nameEl.classList.remove("isEmpty");
+                seatEl.classList.add("isRevealed");
+                // 성별 색상 적용
+                seatEl.classList.add(st.gender === "female" ? "isFemale" : "isMale");
+              }
+            }
+          }
+
+          const pct = Math.floor((revealed / totalSeats) * 100);
+          el.revealProgress.style.width = `${pct}%`;
+          el.revealText.textContent = `공개 중... (${revealed}/${totalSeats})`;
+        }
+      }
+
+      // 모두 공개 완료
+      if (revealed >= totalSeats && slotTick % Math.max(1, Math.floor(intervalPerSeat / REVEAL_TICK_MS)) === 0) {
+        stopReveal();
+        revealDone = true;
+        el.slotA.textContent = "🎉";
+        el.slotB.textContent = "완료";
+        el.slotC.textContent = "🎉";
+        el.revealProgress.style.width = "100%";
+        el.revealText.textContent = "자리 발표 완료!";
+        // 모든 카드에 완료 클래스
+        el.studentClassroom.querySelectorAll(".seat").forEach((s) => s.classList.add("isRevealed"));
+        toast("자리 발표 완료!", "ok");
+      }
+    }, REVEAL_TICK_MS);
+  }
+
+  function showFinalImmediately() {
+    stopReveal();
+    revealDone = true;
+    el.slotA.textContent = "🎉";
+    el.slotB.textContent = "완료";
+    el.slotC.textContent = "🎉";
+    el.revealProgress.style.width = "100%";
+    el.revealText.textContent = "최종 결과";
+    renderClassroom(el.studentClassroom, { isTeacher: false });
+  }
+
+  // ---------------------------
+  // 레이아웃 적용/초기화
+  // ---------------------------
+
+  function applyLayout(blocks, rowsByBlock, mode) {
+    const nextRowsByBlock = Array.isArray(rowsByBlock)
+      ? rowsByBlock.slice(0, blocks)
+      : Array.from({ length: blocks }, () => safeNumber(rowsByBlock, 5));
+
+    state.layout = {
+      blocks,
+      rowsByBlock: nextRowsByBlock,
+      mode: mode === "single" ? "single" : "pair",
+    };
+
+    // 좌석/배정/고정/제약을 레이아웃에 맞게 재구성(기존 유지 가능한 것만 유지)
+    const seatIds = allSeatIds(state.layout);
+
+    const nextSeats = {};
+    const nextAssign = {};
+    for (const sid of seatIds) {
+      nextSeats[sid] = state.seats[sid] || { genderConstraint: "any" };
+      nextAssign[sid] = state.assignments[sid] ?? null;
+    }
+
+    const nextFixed = {};
+    for (const [sid, stId] of Object.entries(state.fixed)) {
+      if (seatIds.includes(sid)) nextFixed[sid] = stId;
+    }
+
+    state.seats = nextSeats;
+    state.assignments = nextAssign;
+    state.fixed = nextFixed;
+
+    // 고정 좌석은 assignment 강제 일치
+    for (const [sid, stId] of Object.entries(state.fixed)) {
+      state.assignments[sid] = stId;
+    }
+
+    saveState();
+    renderAll();
+  }
+
+  function clearAssignments() {
+    // 고정 좌석은 유지, 그 외만 지움
+    for (const sid of Object.keys(state.assignments)) {
+      if (state.fixed[sid]) continue;
+      state.assignments[sid] = null;
+    }
+    saveState();
+    renderAll();
+    toast("배치를 지웠습니다(고정 좌석은 유지).");
+  }
+
+  function resetAll() {
+    if (!confirm("전체 초기화할까요? (LocalStorage 포함)")) return;
+    state = createEmptyState();
+    saveState();
+    renderAll();
+    toast("초기화했습니다.");
+  }
+
+  // ---------------------------
+  // 공통 렌더링/이벤트 연결
+  // ---------------------------
+
+  function renderAll() {
+    // 설정 UI 반영
+    el.layoutMode.value = layoutMode(state.layout);
+    el.layoutBlocks.value = String(state.layout.blocks);
+    renderRowsByBlockControls();
+
+    // 짝 유형은 짝 구조에서만 의미가 있음. 혼자 앉기에서는 짝 유형 select를
+    // 숨기지 않고 회색으로 비활성화만 한다(방금까지 뭘 골라뒀는지 보이게).
+    // 남녀 줄 정렬은 짝 구조에서는 남녀짝일 때만, 혼자 앉기에서는 항상 의미가 있음.
+    const curPairType = normalizePairType(state.settings.pairType);
+    const isSingleMode = layoutMode(state.layout) === "single";
+    el.pairType.value = curPairType;
+    el.pairType.disabled = isSingleMode;
+    el.pairTypeField.classList.toggle("isDisabled", isSingleMode);
+    el.pairAlignColumns.checked = !!state.settings.columnAlign;
+    el.pairAlignField.hidden = !isSingleMode && curPairType !== "mf";
+
+    // 교사용 화면은 항상 미러(상하좌우 반전) 고정
+    el.teacherRoomRoot.classList.add("isMirrored");
+
+    updateHistoryChip();
+    renderStudentList();
+    renderClassroom(el.teacherClassroom, { isTeacher: true });
+
+    // 학생용 화면: reveal 진행 중이 아닐 때만 전체 재렌더링
+    if (!revealTimer) {
+      renderClassroom(el.studentClassroom, { isTeacher: false });
+    }
+  }
+
+  function bindEvents() {
+    el.btnResetAll.addEventListener("click", resetAll);
+
+    el.btnClearSeatsOnly.addEventListener("click", () => {
+      if (!confirm("자리 데이터를 모두 초기화할까요?\n(배치·고정·빈자리고정이 모두 지워집니다. 학생 목록은 유지됩니다)")) return;
+      const seatIds = allSeatIds(state.layout);
+      state.assignments = Object.fromEntries(seatIds.map((sid) => [sid, null]));
+      state.fixed = {};
+      for (const sid of seatIds) {
+        if (state.seats[sid]) {
+          state.seats[sid].emptyFixed = false;
+        }
+      }
+      saveState();
+      renderAll();
+      toast("자리 데이터를 초기화했습니다.");
+    });
+
+    el.btnClearStudents.addEventListener("click", () => {
+      if (!confirm("학생 목록을 모두 삭제할까요?\n(좌석 구조·설정은 유지됩니다)")) return;
+      state.students = [];
+      state.assignments = Object.fromEntries(
+        allSeatIds(state.layout).map((sid) => [sid, null]),
+      );
+      state.fixed = {};
+      saveState();
+      renderAll();
+      toast("학생 목록을 초기화했습니다.");
+    });
+
+    el.formAddStudent.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const fd = new FormData(form);
+      const name = String(fd.get("name") || "").trim();
+      // form.reset()을 쓰면 select가 기본값(남)으로 돌아가므로, 현재 선택값을 그대로 사용/유지
+      const genderRaw = String(fd.get("gender") || "");
+      const gender = genderRaw === "female" ? "female" : "male";
+      if (!name) return;
+      const newStudent = { id: uid("student"), name, gender };
+      state.students.push(newStudent);
+
+      // 입력값 정리: 이름만 비우고 성별 선택은 유지
+      const nameInput = form.querySelector('input[name="name"]');
+      if (nameInput) nameInput.value = "";
+      if (nameInput) nameInput.focus();
+      saveState();
+      renderAll();
+
+      // 추가된 학생이 보이도록 목록을 맨 아래로 스크롤 + 해당 항목으로 스크롤 인뷰
+      requestAnimationFrame(() => {
+        el.studentList.scrollTop = el.studentList.scrollHeight;
+        const node = el.studentList.querySelector(
+          `[data-student-id="${newStudent.id}"]`,
+        );
+        if (node && node.scrollIntoView)
+          node.scrollIntoView({ block: "nearest" });
+      });
+
+      toast("학생을 추가했습니다.");
+    });
+
+    el.studentSearch.addEventListener("input", renderStudentList);
+    el.studentFilterGender.addEventListener("change", renderStudentList);
+
+    el.btnShuffleStudents.addEventListener("click", () => {
+      shuffleInPlace(state.students);
+      saveState();
+      renderAll();
+      toast("학생 목록을 섞었습니다.");
+    });
+
+    // 일괄 입력 모달
+    function openBulkModal() {
+      el.bulkTextarea.value = "";
+      el.bulkModal.hidden = false;
+      el.bulkTextarea.focus();
+    }
+    function closeBulkModal() {
+      el.bulkModal.hidden = true;
+    }
+    el.btnBulkAdd.addEventListener("click", openBulkModal);
+    el.btnBulkClose.addEventListener("click", closeBulkModal);
+    el.btnBulkCancel.addEventListener("click", closeBulkModal);
+    el.bulkModal.addEventListener("click", (e) => {
+      if (e.target === el.bulkModal) closeBulkModal();
+    });
+    el.btnBulkConfirm.addEventListener("click", () => {
+      const raw = el.bulkTextarea.value;
+      const genderVal = el.bulkModal.querySelector('input[name="bulkGender"]:checked')?.value || "male";
+      const names = raw.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+      if (names.length === 0) {
+        toast("이름을 입력해주세요.", "warn");
+        return;
+      }
+      let added = 0;
+      names.forEach((name, idx) => {
+        let gender = genderVal;
+        if (genderVal === "mixed") gender = (idx % 2 === 0) ? "male" : "female";
+        state.students.push({ id: uid("student"), name, gender });
+        added++;
+      });
+      saveState();
+      renderAll();
+      closeBulkModal();
+      toast(`${added}명을 추가했습니다.`);
+    });
+
+    el.btnApplyLayout.addEventListener("click", () => {
+      const blocks = Math.max(
+        1,
+        Math.min(
+          MAX_BLOCKS,
+          safeNumber(el.layoutBlocks.value, state.layout.blocks),
+        ),
+      );
+      const rowsByBlock = readRowsByBlockControls(blocks);
+      const mode = el.layoutMode.value === "single" ? "single" : "pair";
+      applyLayout(blocks, rowsByBlock, mode);
+      toast("좌석 구조를 적용했습니다.");
+    });
+
+    // 분단 개수 변경 시: 분단별 줄 수 입력 UI를 즉시 갱신(적용은 '구조 적용' 버튼)
+    el.layoutBlocks.addEventListener("change", () => {
+      renderRowsByBlockControls();
+    });
+
+    el.btnClearAssignments.addEventListener("click", clearAssignments);
+
+    el.pairType.addEventListener("change", () => {
+      state.settings.pairType = normalizePairType(el.pairType.value);
+      saveState();
+      // 남녀 줄 정렬 표시 여부가 짝 유형에 따라 달라짐(혼자 앉기는 항상 표시)
+      el.pairAlignField.hidden =
+        layoutMode(state.layout) !== "single" &&
+        state.settings.pairType !== "mf";
+    });
+
+    el.pairAlignColumns.addEventListener("change", () => {
+      state.settings.columnAlign = !!el.pairAlignColumns.checked;
+      saveState();
+    });
+
+    el.btnRunRandom.addEventListener("click", runRandomAssignment);
+    el.btnSaveHistory.addEventListener("click", saveHistorySnapshot);
+
+    el.btnExportJson.addEventListener("click", exportJson);
+    el.btnExportJson.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); exportJson(); }
+    });
+    el.fileImportJson.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      try {
+        await importJsonFromFile(file);
+      } catch (err) {
+        toast(`불러오기 실패: ${err?.message || err}`, "err", 3400);
+      }
+    });
+
+    el.btnStudentReveal.addEventListener("click", startRevealAnimation);
+    el.btnStudentShowFinal.addEventListener("click", showFinalImmediately);
+    el.btnStudentReset.addEventListener("click", () => {
+      stopReveal();
+      revealDone = false;
+      el.slotA.textContent = "-";
+      el.slotB.textContent = "-";
+      el.slotC.textContent = "-";
+      el.revealProgress.style.width = "0%";
+      el.revealText.textContent = "버튼을 눌러 추첨을 시작하세요.";
+      renderClassroom(el.studentClassroom, { isTeacher: false });
+    });
+
+    // 사용 안내 모달
+    el.btnHelp.addEventListener("click", () => {
+      el.welcomeModal.hidden = false;
+    });
+    el.btnWelcomeConfirm.addEventListener("click", () => {
+      el.welcomeModal.hidden = true;
+    });
+    el.welcomeModal.addEventListener("click", (e) => {
+      if (e.target === el.welcomeModal) el.welcomeModal.hidden = true;
+    });
+  }
+
+  function renderRowsByBlockControls() {
+    const blocks = Math.max(
+      1,
+      Math.min(
+        MAX_BLOCKS,
+        safeNumber(el.layoutBlocks.value, state.layout.blocks),
+      ),
+    );
+    const current = Array.isArray(state.layout.rowsByBlock)
+      ? state.layout.rowsByBlock
+      : [];
+    const rowsByBlock = Array.from({ length: blocks }, (_, i) => current[i] ?? 5);
+
+    el.layoutRowsByBlock.innerHTML = "";
+    for (let i = 0; i < blocks; i++) {
+      const row = document.createElement("div");
+      row.className = "perBlockRow";
+
+      const label = document.createElement("div");
+      label.className = "perBlockRow__label";
+      label.textContent = `분단${i + 1} 줄 수`;
+
+      const input = document.createElement("input");
+      input.className = "input";
+      input.type = "number";
+      input.min = "1";
+      input.max = String(MAX_ROWS);
+      input.step = "1";
+      input.value = String(
+        Math.max(1, Math.min(MAX_ROWS, safeNumber(rowsByBlock[i], 5))),
+      );
+      input.dataset.blockIndex = String(i);
+
+      row.appendChild(label);
+      row.appendChild(input);
+      el.layoutRowsByBlock.appendChild(row);
+    }
+  }
+
+  function readRowsByBlockControls(blocks) {
+    const arr = Array.from({ length: blocks }, () => 5);
+    el.layoutRowsByBlock
+      .querySelectorAll("input[data-block-index]")
+      .forEach((inp) => {
+        const i = safeNumber(inp.dataset.blockIndex, -1);
+        if (i < 0 || i >= blocks) return;
+        arr[i] = Math.max(1, Math.min(MAX_ROWS, safeNumber(inp.value, arr[i])));
+      });
+    return arr;
+  }
+
+  // ---------------------------
+  // 시작
+  // ---------------------------
+
+  setRoute(currentRoute());
+  bindEvents();
+  renderAll();
+})();
+
+    </script>
+  </body>
+</html>

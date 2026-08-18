@@ -14,7 +14,7 @@
   <header class="hub-header">
     <p class="eyebrow">Personal Dev Archive</p>
     <h1>Workbench</h1>
-    <p>취미로 만든 웹, 업무용 프로그램, 교육용 도구를 기록하고 시연하는 아카이브.</p>
+    <p>뭐라도 하다보면 뭐라도 되겠지 - 아직은 디지털 폐기물 처리장</p>
   </header>
 
   <main class="hub-container" id="hub-container">
@@ -23,12 +23,6 @@
 
   <script src="assets/projects.js"></script>
   <script>
-    const DIFFICULTY_CLASS = {
-      "초급": "beginner",
-      "중급": "intermediate",
-      "고급": "advanced",
-    };
-
     function buildCard(project, index) {
       const isEmpty = project.status === "empty";
       const el = document.createElement(isEmpty ? "div" : "a");
@@ -37,14 +31,12 @@
         el.href = project.path;
       }
 
-      const badgeClass = isEmpty ? "planned" : DIFFICULTY_CLASS[project.difficulty] || "beginner";
-      const badgeLabel = isEmpty ? "PLANNED" : project.difficulty;
       const num = String(index + 1).padStart(2, "0");
 
       el.innerHTML = `
         <div class="card-top">
           <span class="card-index">${num}</span>
-          <span class="tag ${badgeClass}">${badgeLabel}</span>
+          ${isEmpty ? '<span class="tag planned">PLANNED</span>' : ""}
         </div>
         <div class="card-body">
           <h3 class="card-title">${project.title}</h3>

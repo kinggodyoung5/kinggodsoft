@@ -96,14 +96,10 @@ function renderMarkdown(md) {
 
   document.title = `${project.title} — Workbench`;
 
-  const difficultyClass = { "초급": "beginner", "중급": "intermediate", "고급": "advanced" }[project.difficulty] || "beginner";
-
   root.innerHTML = `
     <header class="detail-header">
       <div class="detail-meta">
         <span>${project.category}</span>
-        <span class="sep">/</span>
-        <span class="tag ${difficultyClass}">${project.difficulty}</span>
       </div>
       <h1>${project.title}</h1>
       <p class="detail-desc">${project.description}</p>
@@ -121,7 +117,11 @@ function renderMarkdown(md) {
           </div>
         </div>
         <div class="demo-actions">
-          <a class="btn" href="./demo.html" target="_blank" rel="noopener">전체 화면으로 열기 →</a>
+          ${
+            project.externalUrl
+              ? `<a class="btn" href="${project.externalUrl}" target="_blank" rel="noopener">도구 바로가기 →</a>`
+              : `<a class="btn" href="./demo.html" target="_blank" rel="noopener">전체 화면으로 열기 →</a>`
+          }
         </div>
       </section>
       <section>
@@ -223,7 +223,9 @@ function renderMarkdown(md) {
 
   document.getElementById("devlog-edit-toggle").onclick = openEditor;
 
-  fetch("./post.md")
+  // 캐시 버스팅: 매번 다른 쿼리스트링을 붙여서 브라우저/Vercel CDN 캐시에
+  // 안 걸리고 항상 GitHub의 최신 커밋 내용을 받아오게 한다.
+  fetch(`./post.md?t=${Date.now()}`)
     .then((res) => {
       if (!res.ok) throw new Error("not found");
       return res.text();
