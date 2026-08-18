@@ -57,6 +57,14 @@ const PROJECTS = [
     status: "ready",
   },
   {
+    id: "wordchain",
+    title: "끝말잇기",
+    description: "난이도 5단계 봇 대결 + Firebase 실시간 대결 모드를 지원하는 끝말잇기 게임",
+    category: "교육용 도구",
+    path: "projects/wordchain/",
+    status: "ready",
+  },
+  {
     id: "rockatlas",
     title: "ROCK ATLAS",
     description: "장르·분위기 기반 록 밴드 탐색 아카이브",
@@ -64,14 +72,6 @@ const PROJECTS = [
     path: "projects/rockatlas/",
     status: "ready",
     externalUrl: "https://kinggodyoung5.github.io/rockatlas/",
-  },
-  {
-    id: "wordchain",
-    title: "끝말잇기",
-    description: "봇과 1대1 싱글 모드 + Firebase 실시간 대결 모드를 지원하는 끝말잇기 게임",
-    category: "취미용 개발",
-    path: "projects/wordchain/",
-    status: "ready",
   },
 ];
 

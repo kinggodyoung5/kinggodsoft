@@ -5,7 +5,8 @@
 
 ## 현재 상태
 - 다크 테마로 전면 리디자인 완료. 프로젝트 상세페이지에 데모(iframe) + 개발 후기(devlog) 구조 추가.
-- 프로젝트 6개 등록: 픽셀아트(외부 링크), 릴레이뽑기, 속닥속닥, 자리바꾸기, ROCK ATLAS(외부 링크), 끝말잇기(Firebase 대결 모드 포함) — 전부 실제 데모/후기 있음.
+- 프로젝트 6개 등록: 픽셀아트(외부 링크), 릴레이뽑기, 속닥속닥, 자리바꾸기, 끝말잇기(Firebase 대결 모드 포함, 교육용 도구로 분류), ROCK ATLAS(외부 링크, 취미용 개발) — 전부 실제 데모/후기 있음.
+- 끝말잇기는 최초 커밋 당시 원본 저장소(`wordchain`)의 난이도 5단계 개편(`1a95ad0`, veryEasy/veryHard 추가 + 제한시간 버그 수정) 이전 버전이 실수로 들어가 있었음 — `src/data/words-veryeasy.json` 등 3개 파일 누락, UI도 구버전 3단계였음. 원본 저장소에서 최신 파일 전체를 다시 복사해 수정 완료(로컬에서 5단계 난이도 화면·실제 플레이까지 확인).
 - GitHub 원격 저장소 연결 완료: https://github.com/kinggodyoung5/kinggodsoft (branch: main)
 - Vercel 배포 완료 및 실사용 확인: https://kinggodsoft-kinggodyoung.vercel.app (Deployment Protection 해제해서 로그인 없이 접속 가능)
 - **브라우저 devlog 편집 기능 정상 작동 확인됨**: 상세페이지 "편집" 버튼 → 비밀번호 입력 → 저장하면 GitHub에 직접 커밋됨 (`api/save-post.js`). `EDIT_PASSWORD`/`GITHUB_TOKEN` 환경변수 설정 완료 상태 (실제 커밋 이력으로 확인됨).
