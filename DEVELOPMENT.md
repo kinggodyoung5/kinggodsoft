@@ -1,4 +1,4 @@
-# DEVELOPMENT.md — Workbench 진행상황
+# DEVELOPMENT.md — KingodWorks 진행상황
 
 > 두 PC(예: 집/학교) 사이 작업 동기화용 기록 파일입니다.
 > **작업을 끝낼 때마다 이 파일을 업데이트**하고 커밋하세요.

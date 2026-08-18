@@ -68,7 +68,7 @@ module.exports = async function handler(req, res) {
     }
 
     const putBody = {
-      message: `Update ${path} via Workbench editor`,
+      message: `Update ${path} via KingodWorks editor`,
       content: Buffer.from(content, "utf-8").toString("base64"),
       branch: BRANCH,
     };

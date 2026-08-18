@@ -94,7 +94,7 @@ function renderMarkdown(md) {
     return;
   }
 
-  document.title = `${project.title} — Workbench`;
+  document.title = `${project.title} — KingodWorks`;
 
   root.innerHTML = `
     <header class="detail-header">

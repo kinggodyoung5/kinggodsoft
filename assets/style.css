@@ -1,14 +1,16 @@
 :root {
-  --bg: #09090b;
-  --bg-elevated: #131316;
-  --bg-elevated-2: #1a1a1e;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.22);
-  --text-main: #f2f2f0;
-  --text-sub: #8b8b93;
-  --text-faint: #55555c;
-  --accent: #ff5a34;
-  --accent-dim: rgba(255, 90, 52, 0.14);
+  /* 정크야드 인벤토리 팔레트: 창고 재고표 + 안전 경고 테이프 */
+  --bg: #17140f;
+  --bg-elevated: #1f1a13;
+  --bg-elevated-2: #2a2418;
+  --border: #3d3626;
+  --border-strong: #5a4d30;
+  --text-main: #f2e9d8;
+  --text-sub: #a89a7d;
+  --text-faint: #6b6046;
+  --accent: #e8b23d;
+  --accent-dim: rgba(232, 178, 61, 0.14);
+  --on-accent: #1c1710;
   --mono: "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, monospace;
   --sans: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, sans-serif;
 }
@@ -32,6 +34,18 @@ body {
 
 a {
   color: inherit;
+}
+
+/* ---------- 안전 경고 테이프 ---------- */
+.hazard-tape {
+  height: 8px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--accent),
+    var(--accent) 14px,
+    var(--bg) 14px,
+    var(--bg) 28px
+  );
 }
 
 /* ---------- Top nav ---------- */
@@ -173,10 +187,19 @@ a {
 }
 
 .card-index {
+  display: inline-block;
   font-family: var(--mono);
-  font-size: 0.78rem;
-  color: var(--text-faint);
-  letter-spacing: 0.05em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.card-index::before {
+  content: "NO ";
 }
 
 .tag {
@@ -465,7 +488,7 @@ a {
 .devlog {
   font-size: 0.98rem;
   line-height: 1.75;
-  color: #d7d7db;
+  color: #ddd0b6;
 }
 
 .devlog h1,
