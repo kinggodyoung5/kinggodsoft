@@ -5,10 +5,10 @@
 
 ## 현재 상태
 - 다크 테마로 전면 리디자인 완료. 프로젝트 상세페이지에 데모(iframe) + 개발 후기(devlog) 구조 추가.
-- 릴레이뽑기는 실제 데모(`demo.html`)와 devlog(`post.md`) 예시로 완성. 픽셀아트/속닥속닥은 아직 placeholder.
+- 프로젝트 6개 등록: 픽셀아트(외부 링크), 릴레이뽑기, 속닥속닥, 자리바꾸기, ROCK ATLAS(외부 링크), 끝말잇기(Firebase 대결 모드 포함) — 전부 실제 데모/후기 있음.
 - GitHub 원격 저장소 연결 완료: https://github.com/kinggodyoung5/kinggodsoft (branch: main)
 - Vercel 배포 완료 및 실사용 확인: https://kinggodsoft-kinggodyoung.vercel.app (Deployment Protection 해제해서 로그인 없이 접속 가능)
-- **브라우저에서 devlog 편집 기능 추가**: 상세페이지 "편집" 버튼 → 비밀번호 입력 → 저장하면 GitHub에 직접 커밋됨 (`api/save-post.js`). ⚠️ Vercel 환경변수(`EDIT_PASSWORD`, `GITHUB_TOKEN`) 설정 필요 — 아직 미설정이면 아래 "브라우저 편집 기능 설정" 섹션 확인.
+- **브라우저 devlog 편집 기능 정상 작동 확인됨**: 상세페이지 "편집" 버튼 → 비밀번호 입력 → 저장하면 GitHub에 직접 커밋됨 (`api/save-post.js`). `EDIT_PASSWORD`/`GITHUB_TOKEN` 환경변수 설정 완료 상태 (실제 커밋 이력으로 확인됨).
 
 ## 완료 항목
 - [x] 폴더 구조 생성 (edu-hub/, assets/, projects/, web/)
@@ -26,10 +26,8 @@
 - (여기에 지금 작업 중인 항목을 적으세요)
 
 ## 다음 할 일
-- [ ] Vercel에 `EDIT_PASSWORD`, `GITHUB_TOKEN` 환경변수 설정 (아래 "브라우저 편집 기능 설정" 참고) — 안 하면 편집 저장 시 오류
-- [ ] 픽셀아트 스튜디오 실제 구현 → `projects/pixelart/demo.html` 교체 + `post.md` 작성
-- [ ] 속닥속닥 실제 구현 → `projects/wellness/demo.html` 교체 + `post.md` 작성
-- [ ] web/ 폴더에 큰 웹 프로젝트 추가
+- [ ] web/ 폴더에 큰 웹 프로젝트 추가 (또는 필요 없다면 폴더 정리)
+- [ ] 새 프로젝트가 계속 늘어나면 아래 "구조 논의" 섹션의 `type` 필드 도입 검토
 
 ## 주의사항
 - 카드 내용(제목/설명/난이도/카테고리/경로) 수정은 **`assets/projects.js`만 편집**하면 됩니다. `index.html`은 데이터를 읽어서 자동으로 렌더링하므로 건드릴 필요 없음.
@@ -93,3 +91,4 @@
 | 2026-08-14 | - | GitHub 원격 저장소(kinggodsoft) 연결 및 초기 push 완료 |
 | 2026-08-14 | - | Vercel 배포 완료, Deployment Protection 해제, 실사용(Demo/Devlog 렌더링) 확인 |
 | 2026-08-14 | - | 브라우저 devlog 편집 기능 추가 (api/save-post.js + 편집 버튼), 릴레이뽑기 데모/후기 실제 콘텐츠로 교체 |
+| 2026-08-14 | - | 끝말잇기(wordchain) 프로젝트 추가; 다른 PC 세션에서 push한 자리바꾸기/ROCK ATLAS/externalUrl 스키마 변경과 병합 |
