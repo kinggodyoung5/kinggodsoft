@@ -65,6 +65,14 @@ const PROJECTS = [
     status: "ready",
   },
   {
+    id: "gugudan",
+    title: "구구단 무한배틀",
+    description: "제한시간 안에 구구단을 풀며 연속 정답 기록에 도전하는 서든데스 게임",
+    category: "교육용 도구",
+    path: "projects/gugudan/",
+    status: "ready",
+  },
+  {
     id: "rockatlas",
     title: "ROCK ATLAS",
     description: "장르·분위기 기반 록 밴드 탐색 아카이브",

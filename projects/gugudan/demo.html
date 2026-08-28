@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>구구단 무한배틀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ design tokens ============ */
+  :root{
+    --desk:#dbe1e6;
+    --paper:#fdfdfb;
+    --paper-edge:#eef1ea;
+    --grid-line:rgba(29,43,79,.11);
+    --grid-line-soft:rgba(29,43,79,.06);
+    --ink:#1d2b4f;
+    --ink-soft:#4d5c82;
+    --ink-faint:#8792ac;
+    --red:#c93a30;
+    --red-dark:#9c2a22;
+    --gold:#b9821f;
+    --gold-soft:#f2e3bd;
+    --gold-ink:#5c4213;
+    --shadow:rgba(29,43,79,.28);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --desk:#0d1224;
+      --paper:#1c2340;
+      --paper-edge:#141a30;
+      --grid-line:rgba(220,228,255,.09);
+      --grid-line-soft:rgba(220,228,255,.05);
+      --ink:#eef1ff;
+      --ink-soft:#aab3da;
+      --ink-faint:#6f7aa3;
+      --red:#ff6f61;
+      --red-dark:#ff8a7d;
+      --gold:#e8bd5c;
+      --gold-soft:#3c3115;
+      --gold-ink:#f4dfa0;
+      --shadow:rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --desk:#0d1224;
+    --paper:#1c2340;
+    --paper-edge:#141a30;
+    --grid-line:rgba(220,228,255,.09);
+    --grid-line-soft:rgba(220,228,255,.05);
+    --ink:#eef1ff;
+    --ink-soft:#aab3da;
+    --ink-faint:#6f7aa3;
+    --red:#ff6f61;
+    --red-dark:#ff8a7d;
+    --gold:#e8bd5c;
+    --gold-soft:#3c3115;
+    --gold-ink:#f4dfa0;
+    --shadow:rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Gowun Dodum','Malgun Gothic',sans-serif;
+    background:
+      repeating-linear-gradient(0deg, var(--grid-line-soft) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--grid-line-soft) 0 1px, transparent 1px 28px),
+      var(--desk);
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  #app{
+    position:relative;width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .hidden{display:none !important;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important; transition-duration:.001s !important;}
+  }
+
+  /* ============ notebook page ============ */
+  .page{
+    position:relative;z-index:2;
+    width:min(440px,100%);
+    background:var(--paper);
+    border-radius:6px;
+    padding:34px 26px 28px;
+    box-shadow:0 22px 46px var(--shadow), 0 2px 0 var(--paper-edge);
+    transform:rotate(-0.4deg);
+    border:1px solid var(--grid-line);
+  }
+  .page::before{
+    /* spiral binding */
+    content:"";
+    position:absolute;
+    top:-11px;left:24px;right:24px;height:22px;
+    background-image:radial-gradient(circle at center, var(--desk) 0 5px, transparent 5.5px);
+    background-size:26px 22px;
+    background-repeat:repeat-x;
+    background-position:0 0;
+    opacity:.9;
+  }
+
+  .page-tag{
+    position:absolute;top:14px;right:16px;
+    font-family:'Space Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-faint);
+    text-align:right;
+    line-height:1.5;
+    letter-spacing:.02em;
+  }
+  .page-back-btn{
+    position:absolute;top:12px;right:14px;
+    font-family:'Space Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-faint);
+    background:transparent;
+    border:1px solid var(--grid-line);
+    border-radius:12px;
+    padding:5px 11px;
+    cursor:pointer;
+  }
+  .page-back-btn:active{background:var(--grid-line-soft);}
+
+  .pencil-rule{
+    display:block;margin:0 auto 6px;
+  }
+
+  h1.title{
+    font-family:'Gaegu',cursive;
+    font-weight:700;
+    font-size:clamp(30px,8vw,40px);
+    color:var(--ink);
+    margin:2px 0 2px;
+    text-align:center;
+    position:relative;
+    display:inline-block;
+  }
+  .title-wrap{text-align:center;}
+  .title-underline{
+    display:block;
+    margin:-4px auto 16px;
+    width:min(230px,70%);
+  }
+  .title-underline path{
+    fill:none;stroke:var(--red);stroke-width:4;stroke-linecap:round;
+  }
+
+  .subtitle{
+    text-align:center;
+    font-size:14px;
+    color:var(--ink-soft);
+    line-height:1.75;
+    margin:0 0 26px;
+  }
+  .subtitle b{color:var(--ink);}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    border:none;cursor:pointer;
+    font-family:'Gowun Dodum',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    padding:14px 30px;
+    border-radius:8px;
+    background:var(--ink);
+    color:var(--paper);
+    box-shadow:0 5px 0 var(--red-dark);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red-dark);}
+  .btn-row{text-align:center;}
+
+  .best-record{
+    margin-top:20px;
+    text-align:center;
+    font-size:13px;
+    color:var(--ink-faint);
+  }
+  .best-record b{color:var(--gold);font-family:'Space Mono',monospace;}
+
+  .btn-secondary{
+    background:transparent;
+    color:var(--ink-soft);
+    box-shadow:none;
+    border:2px solid var(--grid-line);
+    padding:10px 22px;
+    font-size:14px;
+  }
+  .btn-secondary:active{transform:translateY(2px);box-shadow:none;}
+
+  /* mute toggle, fixed across all screens */
+  .mute-btn{
+    position:fixed;top:16px;left:16px;z-index:20;
+    font-family:'Space Mono',monospace;
+    font-size:10.5px;
+    padding:7px 10px;
+    border-radius:20px;
+    border:1px solid var(--grid-line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    box-shadow:0 4px 10px var(--shadow);
+  }
+  .mute-btn.muted{color:var(--ink-faint);}
+
+  /* ============ hud ============ */
+  #gameScreen .hud{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:12px;
+  }
+  .streak-tag{
+    font-size:13px;color:var(--ink-soft);
+  }
+  .streak-tag b{
+    font-family:'Space Mono',monospace;
+    font-size:20px;
+    color:var(--ink);
+    font-weight:700;
+  }
+  .limit-tag{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+
+  /* timer = ruler strip */
+  .ruler{
+    position:relative;
+    height:14px;
+    border-radius:3px;
+    background:
+      repeating-linear-gradient(90deg, var(--ink-faint) 0 1px, transparent 1px 10%),
+      var(--grid-line-soft);
+    overflow:hidden;
+    margin-bottom:24px;
+    border:1px solid var(--grid-line);
+  }
+  #timerBar{
+    height:100%;width:100%;
+    background:var(--ink);
+    transition:width .05s linear, background-color .3s ease;
+    border-radius:2px 0 0 2px;
+  }
+  #timerBar.urgent{background:var(--red);}
+
+  /* ============ problem card ============ */
+  .worksheet{
+    position:relative;
+    text-align:center;
+    padding:26px 6px 6px;
+  }
+  .worksheet.shake{animation:shakeX .45s ease;}
+  @keyframes shakeX{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-9px);}
+    40%{transform:translateX(8px);}
+    60%{transform:translateX(-6px);}
+    80%{transform:translateX(5px);}
+  }
+
+  #problem{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    font-size:clamp(36px,10vw,50px);
+    letter-spacing:1px;
+    margin-bottom:20px;
+    color:var(--ink);
+  }
+
+  .answer-row{
+    display:flex;align-items:center;justify-content:center;
+    gap:8px;
+    margin-bottom:20px;
+  }
+  #answerDisplay{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:30px;
+    letter-spacing:3px;
+    color:var(--red);
+    border-bottom:3px dashed var(--grid-line);
+    width:104px;height:44px;
+    display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;
+  }
+  #answerDisplay.empty{color:var(--ink-faint);}
+  .input-hint{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-faint);
+    margin:2px 0 18px;
+  }
+
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+  }
+  .key{
+    aspect-ratio:1.35/1;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Mono',monospace;
+    font-size:19px;font-weight:700;
+    color:var(--ink);
+    background:var(--grid-line-soft);
+    border:1px solid var(--grid-line);
+    border-radius:4px;
+    cursor:pointer;
+    transition:background .1s ease, transform .08s ease;
+  }
+  .key:active{transform:scale(.93);background:var(--grid-line);}
+  .key.enter{
+    background:var(--ink);color:var(--paper);border-color:var(--ink);
+    font-family:'Gowun Dodum',sans-serif;font-size:15px;
+  }
+  .key.del{
+    color:var(--red);border-color:var(--red);
+    font-size:16px;
+  }
+
+  /* result marks (circle / cross) shown right before the answer box */
+  .mark-slot{
+    position:relative;
+    width:38px;height:38px;
+    flex:0 0 auto;
+    align-self:flex-end;
+    margin-bottom:8px;
+  }
+  .mark-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;}
+  .mark-svg.show path{
+    stroke-dasharray:170;stroke-dashoffset:170;
+    animation:drawMark .45s ease forwards;
+  }
+  .mark-svg.show{opacity:1;}
+  @keyframes drawMark{ to{stroke-dashoffset:0;} }
+
+  /* ============ stamp layer (streak celebration) ============ */
+  #stampLayer{position:fixed;inset:0;pointer-events:none;z-index:5;}
+  .stamp{
+    position:absolute;
+    width:96px;height:96px;
+    transform:translate(-50%,-50%) rotate(0deg) scale(.4);
+    opacity:0;
+    animation:stampSlam .38s cubic-bezier(.2,1.6,.4,1) forwards, stampFade .5s ease forwards;
+    animation-delay:0s, 1.6s;
+  }
+  @keyframes stampSlam{
+    0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(2.2);}
+    60%{opacity:1;}
+    100%{opacity:1;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(1);}
+  }
+  @keyframes stampFade{
+    from{opacity:1;}
+    to{opacity:0;}
+  }
+
+  #cheerBanner{
+    position:fixed;
+    top:16%;left:50%;
+    transform:translate(-50%,-14px);
+    z-index:10;
+    font-family:'Gaegu',cursive;
+    font-weight:700;
+    font-size:clamp(22px,6vw,30px);
+    color:var(--red);
+    text-align:center;
+    opacity:0;
+    pointer-events:none;
+    white-space:nowrap;
+    text-shadow:0 2px 0 var(--paper);
+  }
+  #cheerBanner.show{ animation:cheerPop 1.7s ease forwards; }
+  @keyframes cheerPop{
+    0%{opacity:0;transform:translate(-50%,10px) scale(.75) rotate(-3deg);}
+    18%{opacity:1;transform:translate(-50%,-14px) scale(1.1) rotate(2deg);}
+    30%{transform:translate(-50%,-14px) scale(1) rotate(0deg);}
+    82%{opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-30px) scale(.96);}
+  }
+
+  /* ============ profile (attendance roster) ============ */
+  .profile-list{
+    display:flex;flex-direction:column;gap:8px;
+    margin:18px 0 18px;
+    max-height:260px;overflow-y:auto;
+  }
+  .profile-row{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 10px;
+    border:1px solid var(--grid-line);
+    border-radius:8px;
+    background:var(--grid-line-soft);
+    cursor:pointer;
+  }
+  .profile-row:active{background:var(--grid-line);}
+  .profile-avatar{
+    width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+    background:var(--ink);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Gaegu',cursive;font-weight:700;font-size:15px;
+  }
+  .profile-info{flex:1 1 auto;text-align:left;min-width:0;}
+  .profile-name{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .profile-meta{font-family:'Space Mono',monospace;font-size:10.5px;color:var(--ink-faint);}
+  .profile-delete{
+    flex:0 0 auto;width:24px;height:24px;border-radius:50%;
+    border:1px solid var(--grid-line);background:transparent;
+    color:var(--ink-faint);font-size:12px;cursor:pointer;
+  }
+  .profile-empty{text-align:center;font-size:12px;color:var(--ink-faint);padding:10px 0 6px;}
+  .profile-add-row{display:flex;gap:8px;}
+  .profile-input{
+    flex:1 1 auto;min-width:0;
+    font-family:'Gowun Dodum',sans-serif;font-size:14px;
+    padding:12px 14px;border-radius:8px;
+    border:1px solid var(--grid-line);
+    background:var(--paper);color:var(--ink);
+  }
+  .profile-input:focus{outline:2px solid var(--ink-faint);outline-offset:1px;}
+
+  .profile-banner{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    margin:-6px 0 16px;
+    font-size:12px;color:var(--ink-soft);
+  }
+  .profile-banner b{font-family:'Gaegu',cursive;font-size:16px;color:var(--ink);}
+  .profile-switch-btn{
+    font-family:'Space Mono',monospace;font-size:10px;
+    padding:4px 10px;border-radius:12px;
+    border:1px solid var(--grid-line);
+    background:transparent;color:var(--ink-faint);cursor:pointer;
+  }
+
+  /* ============ achievements ============ */
+  .badge-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px 8px;
+    margin:18px 0 4px;
+  }
+  .badge-cell{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+  }
+  .badge-cell svg{width:56px;height:56px;}
+  .badge-cell.locked svg{opacity:.32;filter:grayscale(1);}
+  .badge-name{
+    font-size:10.5px;text-align:center;line-height:1.3;
+    color:var(--ink-soft);
+  }
+  .badge-cell.locked .badge-name{color:var(--ink-faint);}
+
+  #badgeToast{
+    position:fixed;left:50%;bottom:6%;
+    transform:translate(-50%,24px);
+    z-index:10;
+    display:flex;align-items:center;gap:10px;
+    background:var(--paper);
+    border:2px solid var(--gold);
+    border-radius:10px;
+    padding:9px 16px;
+    box-shadow:0 12px 28px var(--shadow);
+    opacity:0;pointer-events:none;
+    max-width:88vw;
+  }
+  #badgeToast svg{width:30px;height:30px;flex:0 0 auto;}
+  #badgeToast .badge-toast-text{
+    text-align:left;line-height:1.3;
+  }
+  #badgeToast .badge-toast-label{font-size:10px;color:var(--ink-faint);}
+  #badgeToast .badge-toast-title{font-family:'Gaegu',cursive;font-weight:700;font-size:16px;color:var(--ink);}
+  #badgeToast.show{ animation:badgeToastPop 2.3s ease forwards; }
+  @keyframes badgeToastPop{
+    0%{opacity:0;transform:translate(-50%,24px);}
+    12%{opacity:1;transform:translate(-50%,0);}
+    82%{opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-8px);}
+  }
+
+  /* ============ result screen ============ */
+  #resultScreen .worksheet{padding-top:10px;}
+  .grade-stamp{
+    width:108px;height:108px;margin:0 auto 6px;
+  }
+  #finalScore{
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    font-size:clamp(48px,15vw,68px);
+    color:var(--ink);
+    margin:2px 0 0;
+    line-height:1;
+  }
+  .final-label{font-size:13px;color:var(--ink-faint);margin-bottom:16px;}
+  #wrongAnswerLine{
+    font-size:14px;color:var(--ink-soft);margin-bottom:6px;
+    background:var(--grid-line-soft);
+    border:1px dashed var(--grid-line);
+    border-radius:6px;
+    padding:10px 12px;
+  }
+  #wrongAnswerLine b{color:var(--red);font-family:'Space Mono',monospace;}
+  .newbest{
+    display:inline-block;margin:12px 0 4px;
+    padding:6px 14px;border-radius:20px;
+    background:var(--gold-soft);color:var(--gold-ink);
+    font-weight:700;font-size:13px;
+    border:1px solid var(--gold);
+  }
+</style>
+</head>
+<body>
+<div id="stampLayer"></div>
+<div id="cheerBanner"></div>
+<div id="badgeToast"></div>
+<button class="mute-btn" id="muteBtn" type="button">소리 ON</button>
+
+<div id="app">
+
+  <!-- PROFILE SCREEN (attendance roster) -->
+  <div id="profileScreen" class="page">
+    <div class="page-tag">오늘의 훈련<br>출석부</div>
+    <div class="title-wrap">
+      <h1 class="title" style="font-size:30px;">누가 할까요?</h1>
+      <svg class="title-underline" viewBox="0 0 230 14" preserveAspectRatio="none">
+        <path d="M4 8 C 40 2, 90 12, 115 7 S 190 2, 226 8"/>
+      </svg>
+    </div>
+    <div class="profile-list" id="profileList"></div>
+    <div class="profile-add-row">
+      <input type="text" id="profileNameInput" class="profile-input" maxlength="8" placeholder="이름을 입력하세요 (최대 8자)">
+      <button class="btn" id="profileAddBtn">입장 ✎</button>
+    </div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="startScreen" class="page hidden">
+    <div class="page-tag">단원 : 곱셈구구<br>오늘의 훈련</div>
+    <div class="title-wrap">
+      <h1 class="title">구구단 무한배틀</h1>
+      <svg class="title-underline" viewBox="0 0 230 14" preserveAspectRatio="none">
+        <path d="M4 8 C 40 2, 90 12, 115 7 S 190 2, 226 8"/>
+      </svg>
+    </div>
+    <div class="profile-banner">
+      <span><b id="currentProfileNameText"></b>님, 화이팅!</span>
+      <button class="profile-switch-btn" id="switchProfileBtn" type="button">다른 사람</button>
+    </div>
+    <p class="subtitle">2단부터 9단까지 랜덤으로 계속 나와요.<br>
+    한 문제당 <b>7초</b>, 연속정답 <b>30개부터는 5초</b>!<br>
+    한 번이라도 틀리면 그 자리에서 채점 끝.</p>
+    <div class="btn-row"><button class="btn" id="startBtn">시작하기 ✎</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-secondary" id="achievementsBtn">도장첩 보기</button></div>
+    <div class="best-record">최고 연속기록 <b id="bestRecord">0</b>문제</div>
+  </div>
+
+  <!-- ACHIEVEMENTS SCREEN -->
+  <div id="achievementsScreen" class="page hidden">
+    <div class="page-tag">업적</div>
+    <div class="title-wrap">
+      <h1 class="title" style="font-size:28px;">나의 도장첩</h1>
+      <svg class="title-underline" viewBox="0 0 230 14" preserveAspectRatio="none">
+        <path d="M4 8 C 40 2, 90 12, 115 7 S 190 2, 226 8"/>
+      </svg>
+    </div>
+    <div class="badge-grid" id="badgeGrid"></div>
+    <div class="btn-row" style="margin-top:20px;"><button class="btn" id="achievementsBackBtn">돌아가기 ✎</button></div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="gameScreen" class="page hidden">
+    <button class="page-back-btn" id="gameBackBtn" type="button">메인으로</button>
+    <div class="hud">
+      <div class="streak-tag">연속정답 <b id="streakCount">0</b></div>
+      <div class="limit-tag" id="timeLimitLabel">제한시간 7초</div>
+    </div>
+    <div class="ruler"><div id="timerBar"></div></div>
+    <div class="worksheet" id="card">
+      <div id="problem">? x ? = ?</div>
+      <div class="answer-row">
+        <div class="mark-slot">
+          <svg class="mark-svg" id="markCheck" viewBox="0 0 60 60">
+            <path d="M30 6 C43 6 53 16 54 28 C55 41 46 52 33 55 C20 58 8 49 6 36 C4 23 13 10 26 7 C27 6 29 6 30 6" fill="none" stroke="var(--red)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="mark-svg" id="markCross" viewBox="0 0 60 60">
+            <path d="M13 13 L47 47 M47 13 L13 47" fill="none" stroke="var(--red)" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div id="answerDisplay" class="empty">―</div>
+      </div>
+      <div class="input-hint">정답을 입력하세요</div>
+      <div class="keypad" id="keypad"></div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="resultScreen" class="page hidden">
+    <div class="page-tag">채점 결과</div>
+    <div class="worksheet">
+      <svg class="grade-stamp" id="resultStampSvg" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="var(--red)" stroke-width="3"/>
+        <circle cx="50" cy="50" r="37" fill="none" stroke="var(--red)" stroke-width="1.5"/>
+        <text id="resultStampText" x="50" y="46" text-anchor="middle" font-family="Gaegu, cursive" font-weight="700" font-size="15" fill="var(--red)">시간 초과</text>
+        <text x="50" y="65" text-anchor="middle" font-family="Gaegu, cursive" font-weight="700" font-size="12" fill="var(--red)">GAME OVER</text>
+      </svg>
+      <div id="finalScore">0</div>
+      <div class="final-label">연속 정답 문제 수</div>
+      <div id="wrongAnswerLine"></div>
+      <div id="newBestWrap"></div>
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn" id="retryBtn">다시 도전 ✎</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-secondary" id="resultBackBtn">메인으로</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ============ audio engine (Web Audio API synthesis, no files/APIs) ============ */
+  const AudioEngine = (function(){
+    let ctx=null, masterGain=null, musicGain=null, sfxGain=null;
+    let muted=false;
+    let musicPlaying=false, nextNoteTime=0, noteIndex=0, schedulerTimer=null;
+    const bpm=132;
+    const stepDur=60/bpm/2;
+    const bassPattern=[110,0,110,146.83, 110,0,130.81,98];
+    const leadPattern=[440,0,659.25,587.33, 523.25,0,440,392];
+
+    function ensureCtx(){
+      if(ctx){ if(ctx.state==='suspended') ctx.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      ctx = new AC();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = muted?0:1;
+      masterGain.connect(ctx.destination);
+      musicGain = ctx.createGain();
+      musicGain.gain.value = 0.05;
+      musicGain.connect(masterGain);
+      sfxGain = ctx.createGain();
+      sfxGain.gain.value = 0.6;
+      sfxGain.connect(masterGain);
+    }
+
+    function noiseBuffer(dur){
+      const rate = ctx.sampleRate;
+      const buf = ctx.createBuffer(1, Math.max(1,Math.floor(rate*dur)), rate);
+      const data = buf.getChannelData(0);
+      for(let i=0;i<data.length;i++) data[i] = Math.random()*2-1;
+      return buf;
+    }
+
+    function tone({freq, type='sine', start=0, dur=0.2, gain=0.3, dest=null, glideTo=null}){
+      if(!ctx) return;
+      const t = ctx.currentTime + Math.max(0,start);
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      if(glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t+dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+      osc.connect(g); g.connect(dest || sfxGain);
+      osc.start(t); osc.stop(t+dur+0.03);
+    }
+
+    function click({start=0, dur=0.035, gain=0.5, freq=1800, q=6, dest=null}){
+      if(!ctx) return;
+      const t = ctx.currentTime + Math.max(0,start);
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer(dur+0.01);
+      const bp = ctx.createBiquadFilter();
+      bp.type='bandpass'; bp.frequency.value=freq; bp.Q.value=q;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(gain, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+      src.connect(bp); bp.connect(g); g.connect(dest || sfxGain);
+      src.start(t); src.stop(t+dur+0.02);
+    }
+
+    function correct(){
+      ensureCtx();
+      tone({freq:1318.51, type:'triangle', start:0, dur:0.11, gain:0.32});
+      tone({freq:1975.53, type:'sine', start:0.05, dur:0.24, gain:0.28});
+    }
+
+    function stamp(level){
+      ensureCtx();
+      const hits = 4 + Math.min(level,4);
+      for(let i=0;i<hits;i++){
+        click({start:i*0.045+Math.random()*0.012, dur:0.03, gain:0.42, freq:1300+Math.random()*900});
+      }
+    }
+
+    function applause(){
+      ensureCtx();
+      const total=1.3, n=100;
+      for(let i=0;i<n;i++){
+        const tt = Math.pow(Math.random(),1.3)*total;
+        click({start:tt, dur:0.018+Math.random()*0.02, gain:0.1+Math.random()*0.09, freq:1400+Math.random()*2600, q:1+Math.random()*2});
+      }
+    }
+
+    function scheduleNote(){
+      if(!ctx) return;
+      while(nextNoteTime < ctx.currentTime+0.15){
+        const bf = bassPattern[noteIndex%bassPattern.length];
+        const lf = leadPattern[noteIndex%leadPattern.length];
+        const start = nextNoteTime-ctx.currentTime;
+        if(bf) tone({freq:bf, type:'square', start, dur:stepDur*0.85, gain:0.05, dest:musicGain});
+        if(lf) tone({freq:lf, type:'square', start, dur:stepDur*0.4, gain:0.045, dest:musicGain});
+        nextNoteTime += stepDur;
+        noteIndex++;
+      }
+    }
+
+    function startMusic(){
+      ensureCtx();
+      if(!ctx || musicPlaying) return;
+      musicPlaying = true;
+      noteIndex = 0;
+      nextNoteTime = ctx.currentTime + 0.05;
+      schedulerTimer = setInterval(scheduleNote, 60);
+    }
+
+    function stopMusic(){
+      musicPlaying = false;
+      if(schedulerTimer){ clearInterval(schedulerTimer); schedulerTimer=null; }
+    }
+
+    function setMuted(v){
+      muted = v;
+      if(masterGain) masterGain.gain.setTargetAtTime(v?0:1, ctx.currentTime, 0.01);
+    }
+
+    return {ensureCtx, correct, stamp, applause, startMusic, stopMusic, setMuted};
+  })();
+
+(function(){
+  const startScreen = document.getElementById('startScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const gameBackBtn = document.getElementById('gameBackBtn');
+  const resultBackBtn = document.getElementById('resultBackBtn');
+  const bestRecordEl = document.getElementById('bestRecord');
+  const streakCountEl = document.getElementById('streakCount');
+  const timeLimitLabel = document.getElementById('timeLimitLabel');
+  const timerBar = document.getElementById('timerBar');
+  const problemEl = document.getElementById('problem');
+  const answerDisplay = document.getElementById('answerDisplay');
+  const keypad = document.getElementById('keypad');
+  const card = document.getElementById('card');
+  const cheerBanner = document.getElementById('cheerBanner');
+  const stampLayer = document.getElementById('stampLayer');
+  const finalScoreEl = document.getElementById('finalScore');
+  const wrongAnswerLine = document.getElementById('wrongAnswerLine');
+  const newBestWrap = document.getElementById('newBestWrap');
+  const resultStampText = document.getElementById('resultStampText');
+  const markCheck = document.getElementById('markCheck');
+  const markCross = document.getElementById('markCross');
+  const muteBtn = document.getElementById('muteBtn');
+  const achievementsBtn = document.getElementById('achievementsBtn');
+  const achievementsBackBtn = document.getElementById('achievementsBackBtn');
+  const achievementsScreen = document.getElementById('achievementsScreen');
+  const badgeGrid = document.getElementById('badgeGrid');
+  const badgeToast = document.getElementById('badgeToast');
+  const profileScreen = document.getElementById('profileScreen');
+  const profileList = document.getElementById('profileList');
+  const profileNameInput = document.getElementById('profileNameInput');
+  const profileAddBtn = document.getElementById('profileAddBtn');
+  const switchProfileBtn = document.getElementById('switchProfileBtn');
+  const currentProfileNameText = document.getElementById('currentProfileNameText');
+
+  let best = 0;
+
+  /* ---- profiles (여러 명이 한 브라우저를 같이 쓸 때, 이름별로 기록 분리) ---- */
+  const PROFILES_KEY = 'gugudan_battle_profiles';
+  const CURRENT_PROFILE_KEY = 'gugudan_battle_current_profile';
+  const bestKeyFor = name => `gugudan_battle_best__${name}`;
+  const statsKeyFor = name => `gugudan_battle_stats__${name}`;
+  let currentProfile = '';
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function loadProfiles(){
+    try{ return JSON.parse(localStorage.getItem(PROFILES_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveProfiles(list){ localStorage.setItem(PROFILES_KEY, JSON.stringify(list)); }
+
+  function loadProfileData(name){
+    best = parseInt(localStorage.getItem(bestKeyFor(name)) || '0', 10);
+    stats = Object.assign({totalCorrect:0, totalGames:0, unlocked:[]}, JSON.parse(localStorage.getItem(statsKeyFor(name)) || '{}'));
+    bestRecordEl.textContent = best;
+  }
+
+  function renderProfileList(){
+    const profiles = loadProfiles();
+    profileList.innerHTML = '';
+    if(profiles.length === 0){
+      profileList.innerHTML = '<div class="profile-empty">아직 등록된 학생이 없어요. 아래에 이름을 적어보세요!</div>';
+      return;
+    }
+    profiles.forEach(name=>{
+      const b = parseInt(localStorage.getItem(bestKeyFor(name)) || '0', 10);
+      const row = document.createElement('div');
+      row.className = 'profile-row';
+      row.innerHTML = `<div class="profile-avatar">${escapeHtml(name.slice(0,1))}</div>
+        <div class="profile-info"><div class="profile-name">${escapeHtml(name)}</div><div class="profile-meta">최고 연속 ${b}문제</div></div>
+        <button class="profile-delete" type="button">✕</button>`;
+      row.addEventListener('click', (e)=>{
+        if(e.target.closest('.profile-delete')) return;
+        selectProfile(name);
+      });
+      row.querySelector('.profile-delete').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(confirm(`'${name}' 학생 기록을 삭제할까요? 되돌릴 수 없어요.`)){
+          deleteProfile(name);
+        }
+      });
+      profileList.appendChild(row);
+    });
+  }
+
+  function selectProfile(name){
+    currentProfile = name;
+    localStorage.setItem(CURRENT_PROFILE_KEY, name);
+    loadProfileData(name);
+    currentProfileNameText.textContent = name;
+    profileScreen.classList.add('hidden');
+    achievementsScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    profileNameInput.value = '';
+  }
+
+  function addProfile(rawName){
+    const name = rawName.trim().slice(0,8);
+    if(!name) return;
+    const profiles = loadProfiles();
+    if(!profiles.includes(name)){
+      profiles.push(name);
+      saveProfiles(profiles);
+    }
+    selectProfile(name);
+  }
+
+  function deleteProfile(name){
+    const profiles = loadProfiles().filter(n=>n!==name);
+    saveProfiles(profiles);
+    localStorage.removeItem(bestKeyFor(name));
+    localStorage.removeItem(statsKeyFor(name));
+    if(currentProfile === name){
+      currentProfile = '';
+      localStorage.removeItem(CURRENT_PROFILE_KEY);
+    }
+    renderProfileList();
+  }
+
+  profileAddBtn.addEventListener('click', ()=> addProfile(profileNameInput.value));
+  profileNameInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') addProfile(profileNameInput.value);
+  });
+  switchProfileBtn.addEventListener('click', ()=>{
+    startScreen.classList.add('hidden');
+    renderProfileList();
+    profileScreen.classList.remove('hidden');
+  });
+
+  /* ---- sound mute toggle ---- */
+  let muted = localStorage.getItem('gugudan_battle_muted') === '1';
+  AudioEngine.setMuted(muted);
+  function updateMuteBtn(){
+    muteBtn.textContent = muted ? '소리 OFF' : '소리 ON';
+    muteBtn.classList.toggle('muted', muted);
+  }
+  updateMuteBtn();
+  muteBtn.addEventListener('click', ()=>{
+    muted = !muted;
+    AudioEngine.ensureCtx();
+    AudioEngine.setMuted(muted);
+    localStorage.setItem('gugudan_battle_muted', muted ? '1' : '0');
+    updateMuteBtn();
+  });
+
+  /* ---- achievements / badges ---- */
+  let stats = {totalCorrect:0, totalGames:0, unlocked:[]};
+  function saveStats(){ if(currentProfile) localStorage.setItem(statsKeyFor(currentProfile), JSON.stringify(stats)); }
+
+  const BADGES = [
+    {id:'first',     title:'첫 걸음',        desc:'첫 정답 맞히기',            cond:s=>s.totalCorrect>=1},
+    {id:'c50',       title:'몸풀기 완료',     desc:'누적 정답 50개',            cond:s=>s.totalCorrect>=50},
+    {id:'c200',      title:'연습벌레',        desc:'누적 정답 200개',           cond:s=>s.totalCorrect>=200},
+    {id:'streak10',  title:'참 잘했어요',     desc:'한 판에 연속 10개 정답',     cond:s=>s.bestStreak>=10},
+    {id:'streak30',  title:'실력자',          desc:'연속 30개 (5초 모드 돌입)',  cond:s=>s.bestStreak>=30},
+    {id:'streak50',  title:'구구단 마스터',   desc:'한 판에 연속 50개 정답',     cond:s=>s.bestStreak>=50},
+    {id:'streak100', title:'전설의 암산왕',   desc:'한 판에 연속 100개 정답',    cond:s=>s.bestStreak>=100},
+    {id:'games10',   title:'도전 정신',       desc:'게임 10판 플레이',           cond:s=>s.totalGames>=10},
+    {id:'games50',   title:'꾸준함',          desc:'게임 50판 플레이',           cond:s=>s.totalGames>=50},
+  ];
+
+  function badgeStampSvg(unlocked, title){
+    const color = unlocked ? 'var(--gold)' : 'var(--ink-faint)';
+    const initial = title.slice(0,1);
+    return `<svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="44" fill="none" stroke="${color}" stroke-width="4"/>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="${color}" stroke-width="1.5"/>
+      <text x="50" y="60" text-anchor="middle" font-family="Gaegu, cursive" font-weight="700" font-size="30" fill="${color}">${initial}</text>
+    </svg>`;
+  }
+
+  function renderBadgeGrid(){
+    badgeGrid.innerHTML = '';
+    BADGES.forEach(b=>{
+      const unlocked = stats.unlocked.includes(b.id);
+      const cell = document.createElement('div');
+      cell.className = 'badge-cell' + (unlocked ? '' : ' locked');
+      cell.innerHTML = badgeStampSvg(unlocked, b.title) + `<div class="badge-name">${b.title}<br>${b.desc}</div>`;
+      badgeGrid.appendChild(cell);
+    });
+  }
+
+  function showBadgeToast(b){
+    badgeToast.innerHTML = badgeStampSvg(true, b.title) +
+      `<div class="badge-toast-text"><div class="badge-toast-label">새 배지 획득</div><div class="badge-toast-title">${b.title}</div></div>`;
+    badgeToast.classList.remove('show');
+    void badgeToast.offsetWidth;
+    badgeToast.classList.add('show');
+  }
+
+  function checkBadges(){
+    const ctx = {totalCorrect:stats.totalCorrect, totalGames:stats.totalGames, bestStreak:Math.max(best, streak)};
+    let unlockedAny = false;
+    BADGES.forEach(b=>{
+      if(!stats.unlocked.includes(b.id) && b.cond(ctx)){
+        stats.unlocked.push(b.id);
+        unlockedAny = true;
+        showBadgeToast(b);
+        AudioEngine.stamp(1);
+      }
+    });
+    if(unlockedAny) saveStats();
+  }
+
+  achievementsBtn.addEventListener('click', ()=>{
+    renderBadgeGrid();
+    startScreen.classList.add('hidden');
+    achievementsScreen.classList.remove('hidden');
+  });
+  achievementsBackBtn.addEventListener('click', ()=>{
+    achievementsScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+  });
+
+  let streak = 0;
+  let curA = 0, curB = 0, curAnswer = 0;
+  let userInput = '';
+  let timerStart = 0;
+  let timeLimit = 7000;
+  let rafId = null;
+  let alive = false;
+  let lastQ = '';
+
+  const PRAISE = [
+    '참 잘했어요!','대단한데?!','천재 아니야?!','구구단의 신!','이 정도면 전설이다','우주 최강 암산왕'
+  ];
+
+  function fmtSec(ms){ return (ms/1000).toFixed(0); }
+
+  function buildKeypad(){
+    keypad.innerHTML = '';
+    const layout = ['1','2','3','4','5','6','7','8','9','del','0','enter'];
+    layout.forEach(k=>{
+      const b = document.createElement('div');
+      b.className = 'key';
+      if(k==='del'){ b.classList.add('del'); b.textContent='⌫'; }
+      else if(k==='enter'){ b.classList.add('enter'); b.textContent='확인'; }
+      else { b.textContent = k; }
+      b.addEventListener('pointerdown', (e)=>{
+        e.preventDefault();
+        handleKey(k);
+      });
+      keypad.appendChild(b);
+    });
+  }
+  buildKeypad();
+
+  function handleKey(k){
+    if(!alive) return;
+    if(k==='del'){
+      userInput = userInput.slice(0,-1);
+    } else if(k==='enter'){
+      submitAnswer();
+      return;
+    } else {
+      if(userInput.length < 3) userInput += k;
+    }
+    renderInput();
+  }
+
+  function renderInput(){
+    if(userInput.length===0){
+      answerDisplay.textContent = '―';
+      answerDisplay.classList.add('empty');
+    } else {
+      answerDisplay.textContent = userInput;
+      answerDisplay.classList.remove('empty');
+    }
+  }
+
+  window.addEventListener('keydown', (e)=>{
+    if(!alive) return;
+    if(e.key >= '0' && e.key <= '9'){ handleKey(e.key); }
+    else if(e.key === 'Backspace'){ handleKey('del'); }
+    else if(e.key === 'Enter'){ handleKey('enter'); }
+  });
+
+  function nextQuestion(){
+    let a,b,qkey;
+    do{
+      a = Math.floor(Math.random()*8)+2; // 2~9
+      b = Math.floor(Math.random()*9)+1; // 1~9
+      qkey = a+'x'+b;
+    } while(qkey===lastQ);
+    lastQ = qkey;
+    curA=a; curB=b; curAnswer=a*b;
+    userInput='';
+    renderInput();
+    problemEl.textContent = `${a} x ${b} = ?`;
+    timeLimit = streak >= 30 ? 5000 : 7000;
+    timeLimitLabel.textContent = `제한시간 ${fmtSec(timeLimit)}초`;
+    timerBar.classList.remove('urgent');
+    timerStart = performance.now();
+    tick();
+  }
+
+  function tick(){
+    if(!alive) return;
+    const elapsed = performance.now() - timerStart;
+    const remain = Math.max(0, timeLimit - elapsed);
+    const pct = (remain/timeLimit)*100;
+    timerBar.style.width = pct + '%';
+    if(pct < 30) timerBar.classList.add('urgent');
+    if(remain <= 0){
+      endGame(true);
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function submitAnswer(){
+    if(userInput.length===0) return;
+    const val = parseInt(userInput,10);
+    if(val === curAnswer){
+      correctAnswer();
+    } else {
+      endGame(false, val);
+    }
+  }
+
+  function flashMark(svg){
+    svg.classList.remove('show');
+    void svg.offsetWidth;
+    svg.classList.add('show');
+    setTimeout(()=>svg.classList.remove('show'), 480);
+  }
+
+  function correctAnswer(){
+    streak++;
+    streakCountEl.textContent = streak;
+    flashMark(markCheck);
+    AudioEngine.correct();
+
+    stats.totalCorrect++;
+    saveStats();
+    checkBadges();
+
+    if(streak % 10 === 0){
+      celebrateMilestone(streak);
+    }
+    nextQuestion();
+  }
+
+  function celebrateMilestone(s){
+    const level = Math.min(Math.floor(s/10)-1, PRAISE.length-1);
+    cheerBanner.textContent = `${PRAISE[level]} (${s}개 연속!)`;
+    cheerBanner.classList.remove('show');
+    void cheerBanner.offsetWidth;
+    cheerBanner.classList.add('show');
+
+    AudioEngine.stamp(level);
+
+    const count = 3 + level*2;
+    for(let i=0;i<count;i++){
+      setTimeout(()=>spawnStamp(level), i*90);
+    }
+  }
+
+  function spawnStamp(level){
+    const wrap = document.createElement('div');
+    wrap.className = 'stamp';
+    wrap.style.left = (15+Math.random()*70)+'vw';
+    wrap.style.top = (20+Math.random()*55)+'vh';
+    wrap.style.setProperty('--rot', (Math.random()*36-18)+'deg');
+    const size = 70 + level*8;
+    wrap.style.width = size+'px';
+    wrap.style.height = size+'px';
+    const strokeColor = level>=3 ? 'var(--gold)' : 'var(--red)';
+    wrap.innerHTML = `
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="${strokeColor}" stroke-width="4"/>
+        <circle cx="50" cy="50" r="36" fill="none" stroke="${strokeColor}" stroke-width="1.5"/>
+        <text x="50" y="47" text-anchor="middle" font-family="Gaegu, cursive" font-weight="700" font-size="14" fill="${strokeColor}">참 잘했어요</text>
+        <text x="50" y="64" text-anchor="middle" font-family="Gaegu, cursive" font-weight="700" font-size="11" fill="${strokeColor}">★ ★ ★</text>
+      </svg>`;
+    stampLayer.appendChild(wrap);
+    setTimeout(()=>wrap.remove(), 2200);
+  }
+
+  function endGame(byTimeout, wrongVal){
+    alive = false;
+    cancelAnimationFrame(rafId);
+    document.getElementById('gameScreen').querySelector('.worksheet').classList.add('shake');
+    flashMark(markCross);
+    AudioEngine.stopMusic();
+    AudioEngine.applause();
+
+    if(streak > best){
+      best = streak;
+      if(currentProfile) localStorage.setItem(bestKeyFor(currentProfile), String(best));
+    }
+    checkBadges();
+
+    setTimeout(()=>{
+      gameScreen.classList.add('hidden');
+      resultScreen.classList.remove('hidden');
+      finalScoreEl.textContent = streak;
+      resultStampText.textContent = byTimeout ? '시간 초과' : '오답';
+      if(byTimeout){
+        wrongAnswerLine.innerHTML = `시간 초과! 정답은 <b>${curAnswer}</b> 였어요 (${curA} x ${curB})`;
+      } else {
+        wrongAnswerLine.innerHTML = `<b>${wrongVal}</b> 은(는) 오답! 정답은 ${curAnswer} 였어요 (${curA} x ${curB})`;
+      }
+      bestRecordEl.textContent = best;
+      if(streak>0 && streak===best){
+        newBestWrap.innerHTML = '<div class="newbest">최고 기록 갱신!</div>';
+      } else {
+        newBestWrap.innerHTML = '';
+      }
+    }, 480);
+  }
+
+  function startGame(){
+    streak = 0;
+    lastQ = '';
+    streakCountEl.textContent = 0;
+    startScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    gameScreen.querySelector('.worksheet').classList.remove('shake');
+    alive = true;
+
+    AudioEngine.ensureCtx();
+    AudioEngine.startMusic();
+    stats.totalGames++;
+    saveStats();
+    checkBadges();
+
+    nextQuestion();
+  }
+
+  function backToMain(){
+    alive = false;
+    cancelAnimationFrame(rafId);
+    AudioEngine.stopMusic();
+    if(streak > best){
+      best = streak;
+      if(currentProfile) localStorage.setItem(bestKeyFor(currentProfile), String(best));
+      bestRecordEl.textContent = best;
+    }
+    checkBadges();
+    gameScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+  gameBackBtn.addEventListener('click', ()=>{
+    if(alive && streak > 0 && !confirm('게임을 종료하고 메인으로 돌아갈까요?\n지금까지 맞힌 기록은 저장돼요.')) return;
+    backToMain();
+  });
+  resultBackBtn.addEventListener('click', backToMain);
+
+  /* ---- boot: resume last active student, or show the roster ---- */
+  (function boot(){
+    const savedName = localStorage.getItem(CURRENT_PROFILE_KEY);
+    if(savedName && loadProfiles().includes(savedName)){
+      selectProfile(savedName);
+    } else {
+      renderProfileList();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
